@@ -44,8 +44,8 @@ export async function handleEnd(
 		duration = parsed;
 	}
 
-	// 개별 세션 저장 (날짜별로 조회 가능하도록)
-	const sessionDate = getDateKey(startTime);
+	// 개별 세션 저장 (종료 시간 기준으로 저장 - 주간 경계 버그 방지)
+	const sessionDate = getDateKey(now);
 	const sessionsKey = `${teamId}:sessions:${sessionDate}`;
 	const sessions: Session[] = JSON.parse((await env.STUDY_KV.get(sessionsKey)) || '[]');
 	sessions.push({
