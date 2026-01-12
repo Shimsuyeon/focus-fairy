@@ -19,6 +19,42 @@ export function getDateKey(ts: number): string {
 	return d.toISOString().split('T')[0];
 }
 
+/** 타임스탬프가 현재 주(월~일)에 속하는지 확인 */
+export function isCurrentWeek(ts: number): boolean {
+	const today = new Date(Date.now() + KST_OFFSET);
+	const target = new Date(ts + KST_OFFSET);
+
+	// 현재 주의 월요일 구하기
+	const todayDay = today.getUTCDay();
+	const monday = new Date(today);
+	monday.setUTCDate(today.getUTCDate() - (todayDay === 0 ? 6 : todayDay - 1));
+	monday.setUTCHours(0, 0, 0, 0);
+
+	// 현재 주의 일요일 구하기
+	const sunday = new Date(monday);
+	sunday.setUTCDate(monday.getUTCDate() + 6);
+	sunday.setUTCHours(23, 59, 59, 999);
+
+	return target >= monday && target <= sunday;
+}
+
+/** 타임스탬프가 속한 주의 월요일~일요일 범위 반환 */
+export function getWeekRangeForDate(ts: number): { startDate: string; endDate: string } {
+	const d = new Date(ts + KST_OFFSET);
+	const dayOfWeek = d.getUTCDay();
+
+	const monday = new Date(d);
+	monday.setUTCDate(d.getUTCDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+	const sunday = new Date(monday);
+	sunday.setUTCDate(monday.getUTCDate() + 6);
+
+	return {
+		startDate: monday.toISOString().split('T')[0],
+		endDate: sunday.toISOString().split('T')[0],
+	};
+}
+
 /** 기간 문자열을 시작/종료 날짜로 변환 */
 export function getDateRange(period: string): DateRange {
 	const today = new Date(Date.now() + KST_OFFSET);
@@ -71,4 +107,3 @@ export function getDateRange(period: string): DateRange {
 			return { startDate: '', endDate: '', label: '' };
 	}
 }
-

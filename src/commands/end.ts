@@ -5,8 +5,8 @@
 import type { Session } from '../types';
 import { replyEphemeral, postMessage, getUserName } from '../utils/slack';
 import { formatTime, formatDuration, parseDuration } from '../utils/format';
-import { getDateKey } from '../utils/date';
-import { getWeekTotal } from '../services/session';
+import { getDateKey, isCurrentWeek } from '../utils/date';
+import { getWeekTotalForDate } from '../services/session';
 import { ENCOURAGEMENTS, MAX_AUTO_DURATION } from '../constants/messages';
 
 export async function handleEnd(
@@ -44,8 +44,8 @@ export async function handleEnd(
 		duration = parsed;
 	}
 
-	// 개별 세션 저장 (종료 시간 기준으로 저장 - 주간 경계 버그 방지)
-	const sessionDate = getDateKey(now);
+	// 개별 세션 저장 (시작 시간 기준으로 저장)
+	const sessionDate = getDateKey(startTime);
 	const sessionsKey = `${teamId}:sessions:${sessionDate}`;
 	const sessions: Session[] = JSON.parse((await env.STUDY_KV.get(sessionsKey)) || '[]');
 	sessions.push({
@@ -63,8 +63,11 @@ export async function handleEnd(
 
 	await env.STUDY_KV.delete(`${teamId}:checkin:${userId}`);
 
-	// 이번 주 누적 계산
-	const weekTotal = await getWeekTotal(env, teamId, userId);
+	// 세션이 저장된 주의 누적 계산
+	const weekTotal = await getWeekTotalForDate(env, teamId, userId, startTime);
+
+	// 이번 주인지 지난 주인지 판단
+	const weekLabel = isCurrentWeek(startTime) ? '이번 주' : '지난 주';
 
 	// 사용자 이름 조회
 	const userName = await getUserName(env, userId);
@@ -77,7 +80,7 @@ export async function handleEnd(
 		channelId,
 		`:fairy-party: *${userName}*님 수고했어요! (${formatTime(now)})\n` +
 			`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}\n` +
-			`:fairy-chart: 이번 주 누적: ${formatDuration(weekTotal)}\n\n` +
+			`:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}\n\n` +
 			`${randomMsg}`
 	);
 

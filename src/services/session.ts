@@ -5,6 +5,7 @@
 import type { Session } from '../types';
 import { formatDuration } from '../utils/format';
 import { reply, getUserNames } from '../utils/slack';
+import { getWeekRangeForDate } from '../utils/date';
 import { MEDALS } from '../constants/messages';
 
 /** 이번 주 누적 시간 계산 */
@@ -21,6 +22,23 @@ export async function getWeekTotal(env: Env, teamId: string, userId: string): Pr
 		const dateKey = d.toISOString().split('T')[0];
 		const sessions: Session[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:sessions:${dateKey}`)) || '[]');
 		total += sessions.filter((s) => s.userId === userId).reduce((sum, s) => sum + s.duration, 0);
+	}
+	return total;
+}
+
+/** 특정 타임스탬프가 속한 주의 누적 시간 계산 */
+export async function getWeekTotalForDate(env: Env, teamId: string, userId: string, ts: number): Promise<number> {
+	const { startDate, endDate } = getWeekRangeForDate(ts);
+
+	let total = 0;
+	let current = new Date(startDate + 'T00:00:00Z');
+	const end = new Date(endDate + 'T00:00:00Z');
+
+	while (current <= end) {
+		const dateKey = current.toISOString().split('T')[0];
+		const sessions: Session[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:sessions:${dateKey}`)) || '[]');
+		total += sessions.filter((s) => s.userId === userId).reduce((sum, s) => sum + s.duration, 0);
+		current.setUTCDate(current.getUTCDate() + 1);
 	}
 	return total;
 }
