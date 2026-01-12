@@ -2,11 +2,42 @@
  * 슬랙 유틸리티
  */
 
-/** 슬랙 in_channel 응답 생성 */
+/** 슬랙 in_channel 응답 생성 (모두에게 보임) */
 export function reply(text: string): Response {
 	return new Response(JSON.stringify({ response_type: 'in_channel', text }), {
 		headers: { 'Content-Type': 'application/json' },
 	});
+}
+
+/** 슬랙 ephemeral 응답 생성 (명령어 입력한 사람만 보임) */
+export function replyEphemeral(text: string): Response {
+	return new Response(JSON.stringify({ response_type: 'ephemeral', text }), {
+		headers: { 'Content-Type': 'application/json' },
+	});
+}
+
+/** 채널에 메시지 전송 (chat.postMessage API) */
+export async function postMessage(env: Env, channel: string, text: string): Promise<boolean> {
+	try {
+		const response = await fetch('https://slack.com/api/chat.postMessage', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${env.SLACK_BOT_TOKEN}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ channel, text }),
+		});
+
+		const data = (await response.json()) as { ok: boolean; error?: string };
+		if (!data.ok) {
+			console.error('Failed to post message:', data.error);
+			return false;
+		}
+		return true;
+	} catch (error) {
+		console.error('Failed to post message:', error);
+		return false;
+	}
 }
 
 /** 사용자 이름 캐시 (요청당 메모리 캐시) */

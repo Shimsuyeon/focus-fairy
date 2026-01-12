@@ -24,14 +24,15 @@ export default {
 		const command = formData.get('command') as string;
 		const userId = formData.get('user_id') as string;
 		const teamId = formData.get('team_id') as string;
+		const channelId = formData.get('channel_id') as string;
 		const text = (formData.get('text') as string)?.trim() || '';
 
 		// 커맨드 라우팅
 		switch (command) {
 			case '/start':
-				return handleStart(env, teamId, userId);
+				return handleStart(env, teamId, userId, channelId);
 			case '/end':
-				return handleEnd(env, teamId, userId, text);
+				return handleEnd(env, teamId, userId, channelId, text);
 			case '/weekly':
 				return handleWeekly(env, teamId);
 			case '/mystats':
