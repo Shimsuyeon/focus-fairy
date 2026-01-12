@@ -24,4 +24,3 @@ export interface SlackCommandRequest {
 	teamId: string;
 	text: string;
 }
-

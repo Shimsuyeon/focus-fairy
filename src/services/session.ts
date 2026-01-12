@@ -4,7 +4,7 @@
 
 import type { Session } from '../types';
 import { formatDuration } from '../utils/format';
-import { reply } from '../utils/slack';
+import { reply, getUserNames } from '../utils/slack';
 import { MEDALS } from '../constants/messages';
 
 /** 이번 주 누적 시간 계산 */
@@ -52,12 +52,17 @@ export async function generateReport(
 	const entries = Object.entries(stats).sort((a, b) => b[1] - a[1]);
 
 	if (entries.length === 0) {
-		return reply(':fairy-chart: 이번 주는 아직 기록이 없어요! 요정이 기다리고 있을게요 :fairy-wand:');
+		return reply(':fairy-chart: 해당 기간에는 아직 기록이 없어요! 요정이 기다리고 있을게요 :fairy-wand:');
 	}
+
+	// 사용자 이름들 한번에 조회
+	const userIds = entries.map(([uid]) => uid);
+	const userNames = await getUserNames(env, userIds);
 
 	const lines = entries.map(([uid, ms], i) => {
 		const medal = MEDALS[i] || `${i + 1}.`;
-		return `${medal} <@${uid}> - ${formatDuration(ms)}`;
+		const name = userNames.get(uid) || uid;
+		return `${medal} ${name} - ${formatDuration(ms)}`;
 	});
 
 	const total = entries.reduce((sum, [, ms]) => sum + ms, 0);
@@ -68,4 +73,3 @@ export async function generateReport(
 			`총 ${entries.length}명 | :fairy-hourglass: 합계 ${formatDuration(total)}`
 	);
 }
-

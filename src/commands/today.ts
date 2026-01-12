@@ -2,7 +2,7 @@
  * /today 커맨드 핸들러
  */
 
-import { reply } from '../utils/slack';
+import { reply, getUserName } from '../utils/slack';
 import { getTodayKey } from '../utils/date';
 
 export async function handleToday(env: Env, teamId: string): Promise<Response> {
@@ -15,18 +15,21 @@ export async function handleToday(env: Env, teamId: string): Promise<Response> {
 
 	const statuses = await Promise.all(
 		todayList.map(async (uid) => {
-			const checkIn = await env.STUDY_KV.get(`${teamId}:checkin:${uid}`);
+			const [checkIn, userName] = await Promise.all([
+				env.STUDY_KV.get(`${teamId}:checkin:${uid}`),
+				getUserName(env, uid),
+			]);
 			const status = checkIn ? ':fairy-fire:' : ':fairy-party:';
-			return `${status} <@${uid}>`;
+			return { status, userName, isStudying: !!checkIn };
 		})
 	);
 
-	const studying = statuses.filter((s) => s.includes('fire')).length;
+	const lines = statuses.map((s) => `${s.status} ${s.userName}`);
+	const studying = statuses.filter((s) => s.isStudying).length;
 
 	return reply(
 		`:fairy-chart: *오늘 집중한 사람들*\n\n` +
-			`${statuses.join('\n')}\n\n` +
+			`${lines.join('\n')}\n\n` +
 			`:fairy-fire: 집중 중 ${studying}명 | :fairy-party: 완료 ${todayList.length - studying}명`
 	);
 }
-
