@@ -2,7 +2,7 @@
  * /mystats 커맨드 핸들러
  */
 
-import { reply } from '../utils/slack';
+import { replyEphemeral } from '../utils/slack';
 import { formatDuration } from '../utils/format';
 import { getWeekTotal } from '../services/session';
 
@@ -19,11 +19,10 @@ export async function handleMyStats(env: Env, teamId: string, userId: string): P
 		status = `:fairy-fire: 집중 중 (${formatDuration(elapsed)} 경과)`;
 	}
 
-	return reply(
-		`:fairy-chart: *<@${userId}>님의 집중 통계*\n\n` +
+	return replyEphemeral(
+		`:fairy-chart: *나의 집중 통계*\n\n` +
 			`${status}\n` +
 			`:fairy-sun: 이번 주: ${formatDuration(weekTotal)}\n` +
 			`:fairy-gold: 전체 누적: ${formatDuration(totalTime)}`
 	);
 }
-

@@ -2,7 +2,7 @@
  * /start 커맨드 핸들러
  */
 
-import { replyEphemeral, postMessage, getUserName } from '../utils/slack';
+import { reply, replyEphemeral, postMessage, getUserName } from '../utils/slack';
 import { formatTime, formatDuration } from '../utils/format';
 import { getTodayKey } from '../utils/date';
 
@@ -29,14 +29,16 @@ export async function handleStart(env: Env, teamId: string, userId: string, chan
 	// 사용자 이름 조회
 	const userName = await getUserName(env, teamId, userId);
 
-	// 채널에 공개 메시지 전송
-	await postMessage(
-		env,
-		teamId,
-		channelId,
-		`:fairy-wand: *${userName}*님이 집중을 시작했어요! 화이팅! (${formatTime(now)})`
-	);
+	const publicMessage = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now)})`;
 
-	// 본인에게만 확인 메시지
-	return replyEphemeral(':fairy-wand: 집중 시작! 요정이 응원할게요 ✨');
+	// 채널에 공개 메시지 전송 시도
+	const posted = await postMessage(env, teamId, channelId, publicMessage);
+
+	if (posted) {
+		// postMessage 성공: 본인에게만 짧은 확인 메시지
+		return replyEphemeral(':fairy-wand: 집중 시작!');
+	} else {
+		// postMessage 실패: 기존 방식으로 fallback (in_channel)
+		return reply(publicMessage);
+	}
 }

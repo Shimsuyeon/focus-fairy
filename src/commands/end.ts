@@ -3,7 +3,7 @@
  */
 
 import type { Session } from '../types';
-import { replyEphemeral, postMessage, getUserName } from '../utils/slack';
+import { reply, replyEphemeral, postMessage, getUserName } from '../utils/slack';
 import { formatTime, formatDuration, parseDuration } from '../utils/format';
 import { getDateKey, isCurrentWeek } from '../utils/date';
 import { getWeekTotalForDate } from '../services/session';
@@ -74,17 +74,20 @@ export async function handleEnd(
 
 	const randomMsg = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
 
-	// 채널에 공개 메시지 전송
-	await postMessage(
-		env,
-		teamId,
-		channelId,
-		`:fairy-party: *${userName}*님 수고했어요! (${formatTime(now)})\n` +
-			`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}\n` +
-			`:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}\n\n` +
-			`${randomMsg}`
-	);
+	const publicMessage =
+		`:fairy-party: <@${userId}>님 수고했어요! (${formatTime(now)})\n` +
+		`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}\n` +
+		`:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}\n\n` +
+		`${randomMsg}`;
 
-	// 본인에게만 확인 메시지
-	return replyEphemeral(`:fairy-party: 집중 종료! ${formatDuration(duration)} 기록됐어요 ✨`);
+	// 채널에 공개 메시지 전송 시도
+	const posted = await postMessage(env, teamId, channelId, publicMessage);
+
+	if (posted) {
+		// postMessage 성공: 본인에게만 짧은 확인 메시지
+		return replyEphemeral(`:fairy-party: ${formatDuration(duration)} 기록 완료!`);
+	} else {
+		// postMessage 실패: 기존 방식으로 fallback (in_channel)
+		return reply(publicMessage);
+	}
 }

@@ -34,13 +34,13 @@ export default {
 			case '/end':
 				return handleEnd(env, teamId, userId, channelId, text);
 			case '/weekly':
-				return handleWeekly(env, teamId);
+				return handleWeekly(env, teamId, userId, channelId);
 			case '/mystats':
 				return handleMyStats(env, teamId, userId);
 			case '/today':
 				return handleToday(env, teamId);
 			case '/report':
-				return handleReportCommand(env, teamId, text);
+				return handleReportCommand(env, teamId, userId, channelId, text);
 			default:
 				return reply('알 수 없는 명령어예요.');
 		}

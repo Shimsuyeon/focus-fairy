@@ -4,7 +4,7 @@
 
 import type { Session } from '../types';
 import { formatDuration } from '../utils/format';
-import { reply, getUserNames } from '../utils/slack';
+import { getUserNames } from '../utils/slack';
 import { getWeekRangeForDate } from '../utils/date';
 import { MEDALS } from '../constants/messages';
 
@@ -43,14 +43,14 @@ export async function getWeekTotalForDate(env: Env, teamId: string, userId: stri
 	return total;
 }
 
-/** 기간별 리포트 생성 */
-export async function generateReport(
+/** 기간별 리포트 텍스트 생성 */
+export async function generateReportText(
 	env: Env,
 	teamId: string,
 	startDate: string,
 	endDate: string,
 	label: string
-): Promise<Response> {
+): Promise<string | null> {
 	const stats: Record<string, number> = {};
 
 	let current = new Date(startDate + 'T00:00:00Z');
@@ -70,7 +70,7 @@ export async function generateReport(
 	const entries = Object.entries(stats).sort((a, b) => b[1] - a[1]);
 
 	if (entries.length === 0) {
-		return reply(':fairy-chart: 해당 기간에는 아직 기록이 없어요! 요정이 기다리고 있을게요 :fairy-wand:');
+		return null;
 	}
 
 	// 사용자 이름들 한번에 조회
@@ -85,9 +85,9 @@ export async function generateReport(
 
 	const total = entries.reduce((sum, [, ms]) => sum + ms, 0);
 
-	return reply(
+	return (
 		`:fairy-chart: *${label} 집중 시간 리포트*\n\n` +
-			`${lines.join('\n')}\n\n` +
-			`총 ${entries.length}명 | :fairy-hourglass: 합계 ${formatDuration(total)}`
+		`${lines.join('\n')}\n\n` +
+		`총 ${entries.length}명 | :fairy-hourglass: 합계 ${formatDuration(total)}`
 	);
 }
