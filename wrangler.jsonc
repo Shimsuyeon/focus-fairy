@@ -1,0 +1,15 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "focus-fairy",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-01-07",
+	"observability": {
+		"enabled": true
+	},
+	"kv_namespaces": [
+		{
+			"binding": "STUDY_KV",
+			"id": "462f60277cac499aa02b7ea3d658d0fe"
+		}
+	]
+}
