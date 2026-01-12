@@ -1,4 +1,48 @@
-# 집중요정 (Focus Fairy) 릴리즈 노트
+# 🧚‍♀️ 집중요정 (Focus Fairy)
+
+8명 스터디 그룹을 위한 슬랙 기반 집중 시간 트래커 봇
+
+## ✨ 기능
+
+| 명령어 | 설명 |
+|--------|------|
+| `/start` | 집중 시작 |
+| `/end` | 집중 종료 (6시간 초과 시 수동 입력 가능: `/end 2시간 30분`) |
+| `/today` | 오늘 집중한 사람들 현황 |
+| `/mystats` | 내 집중 통계 (이번 주 / 전체 누적) |
+| `/weekly` | 이번 주 랭킹 리포트 |
+| `/report` | 기간별 리포트 (`thisweek`, `lastweek`, `thismonth`, `26-01-01 26-01-07`) |
+
+## 🛠 기술 스택
+
+- **Cloudflare Workers** - 서버리스 배포
+- **Cloudflare KV** - 데이터 저장
+- **Slack Slash Commands** - 인터페이스
+- **TypeScript**
+
+## 🚀 배포
+
+```bash
+# 개발 서버
+npm run dev
+
+# 배포
+npx wrangler deploy
+
+# 시크릿 설정 (멀티 워크스페이스)
+echo '{"TEAM_ID_1":"xoxb-...", "TEAM_ID_2":"xoxb-..."}' | npx wrangler secret put SLACK_BOT_TOKENS
+```
+
+## 🧚‍♀️ 특징
+
+- 요정 컨셉의 커스텀 이모지 (:fairy-wand:, :fairy-fire: 등)
+- 세션 종료 시 랜덤 격려 메시지 15종
+- 한국 시간대(KST) 기준 동작
+- 멀티 워크스페이스 지원
+
+---
+
+# 📋 릴리즈 노트
 
 ## [1.4.0] - 2026-01-13
 
@@ -65,6 +109,3 @@
 - `/mystats` - 내 집중 통계 (이번 주 / 전체 누적)
 - `/today` - 오늘 집중한 사람들 현황
 
-### 🧚‍♀️ 특징
-
-- 한국 시간대(KST) 기준 동작
