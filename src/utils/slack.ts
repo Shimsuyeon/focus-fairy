@@ -16,13 +16,35 @@ export function replyEphemeral(text: string): Response {
 	});
 }
 
+/** Team ID에 맞는 Bot Token 가져오기 */
+export function getBotToken(env: Env, teamId: string): string | null {
+	try {
+		// JSON 형식: {"T123":"xoxb-...", "T456":"xoxb-..."}
+		if (env.SLACK_BOT_TOKENS) {
+			const tokens = JSON.parse(env.SLACK_BOT_TOKENS) as Record<string, string>;
+			return tokens[teamId] || null;
+		}
+	} catch (error) {
+		console.error('Failed to parse SLACK_BOT_TOKENS:', error);
+	}
+
+	// fallback: 단일 토큰 (이전 버전 호환)
+	return env.SLACK_BOT_TOKEN || null;
+}
+
 /** 채널에 메시지 전송 (chat.postMessage API) */
-export async function postMessage(env: Env, channel: string, text: string): Promise<boolean> {
+export async function postMessage(env: Env, teamId: string, channel: string, text: string): Promise<boolean> {
+	const token = getBotToken(env, teamId);
+	if (!token) {
+		console.error('No bot token for team:', teamId);
+		return false;
+	}
+
 	try {
 		const response = await fetch('https://slack.com/api/chat.postMessage', {
 			method: 'POST',
 			headers: {
-				Authorization: `Bearer ${env.SLACK_BOT_TOKEN}`,
+				Authorization: `Bearer ${token}`,
 				'Content-Type': 'application/json',
 			},
 			body: JSON.stringify({ channel, text }),
@@ -44,16 +66,22 @@ export async function postMessage(env: Env, channel: string, text: string): Prom
 const userNameCache = new Map<string, string>();
 
 /** Slack API로 사용자 display name 조회 */
-export async function getUserName(env: Env, userId: string): Promise<string> {
+export async function getUserName(env: Env, teamId: string, userId: string): Promise<string> {
 	// 캐시 확인
-	if (userNameCache.has(userId)) {
-		return userNameCache.get(userId)!;
+	const cacheKey = `${teamId}:${userId}`;
+	if (userNameCache.has(cacheKey)) {
+		return userNameCache.get(cacheKey)!;
+	}
+
+	const token = getBotToken(env, teamId);
+	if (!token) {
+		return userId;
 	}
 
 	try {
 		const response = await fetch(`https://slack.com/api/users.info?user=${userId}`, {
 			headers: {
-				Authorization: `Bearer ${env.SLACK_BOT_TOKEN}`,
+				Authorization: `Bearer ${token}`,
 				'Content-Type': 'application/json',
 			},
 		});
@@ -63,7 +91,7 @@ export async function getUserName(env: Env, userId: string): Promise<string> {
 		if (data.ok && data.user) {
 			// display_name이 있으면 사용, 없으면 real_name, 그것도 없으면 name
 			const name = data.user.profile?.display_name || data.user.real_name || data.user.name || userId;
-			userNameCache.set(userId, name);
+			userNameCache.set(cacheKey, name);
 			return name;
 		}
 	} catch (error) {
@@ -75,11 +103,11 @@ export async function getUserName(env: Env, userId: string): Promise<string> {
 }
 
 /** 여러 사용자 이름을 한번에 조회 */
-export async function getUserNames(env: Env, userIds: string[]): Promise<Map<string, string>> {
+export async function getUserNames(env: Env, teamId: string, userIds: string[]): Promise<Map<string, string>> {
 	const names = new Map<string, string>();
 	await Promise.all(
 		userIds.map(async (userId) => {
-			const name = await getUserName(env, userId);
+			const name = await getUserName(env, teamId, userId);
 			names.set(userId, name);
 		})
 	);

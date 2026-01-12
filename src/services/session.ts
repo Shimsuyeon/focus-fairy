@@ -75,7 +75,7 @@ export async function generateReport(
 
 	// 사용자 이름들 한번에 조회
 	const userIds = entries.map(([uid]) => uid);
-	const userNames = await getUserNames(env, userIds);
+	const userNames = await getUserNames(env, teamId, userIds);
 
 	const lines = entries.map(([uid, ms], i) => {
 		const medal = MEDALS[i] || `${i + 1}.`;

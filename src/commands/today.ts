@@ -15,10 +15,7 @@ export async function handleToday(env: Env, teamId: string): Promise<Response> {
 
 	const statuses = await Promise.all(
 		todayList.map(async (uid) => {
-			const [checkIn, userName] = await Promise.all([
-				env.STUDY_KV.get(`${teamId}:checkin:${uid}`),
-				getUserName(env, uid),
-			]);
+			const [checkIn, userName] = await Promise.all([env.STUDY_KV.get(`${teamId}:checkin:${uid}`), getUserName(env, teamId, uid)]);
 			const status = checkIn ? ':fairy-fire:' : ':fairy-party:';
 			return { status, userName, isStudying: !!checkIn };
 		})

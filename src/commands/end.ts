@@ -70,13 +70,14 @@ export async function handleEnd(
 	const weekLabel = isCurrentWeek(startTime) ? '이번 주' : '지난 주';
 
 	// 사용자 이름 조회
-	const userName = await getUserName(env, userId);
+	const userName = await getUserName(env, teamId, userId);
 
 	const randomMsg = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
 
 	// 채널에 공개 메시지 전송
 	await postMessage(
 		env,
+		teamId,
 		channelId,
 		`:fairy-party: *${userName}*님 수고했어요! (${formatTime(now)})\n` +
 			`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}\n` +

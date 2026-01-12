@@ -27,11 +27,12 @@ export async function handleStart(env: Env, teamId: string, userId: string, chan
 	}
 
 	// 사용자 이름 조회
-	const userName = await getUserName(env, userId);
+	const userName = await getUserName(env, teamId, userId);
 
 	// 채널에 공개 메시지 전송
 	await postMessage(
 		env,
+		teamId,
 		channelId,
 		`:fairy-wand: *${userName}*님이 집중을 시작했어요! 화이팅! (${formatTime(now)})`
 	);
