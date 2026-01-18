@@ -1,10 +1,10 @@
 /**
  * /export 커맨드 핸들러
- * 개인 집중 기록 내보내기 (text, graph)
+ * 개인 집중 기록 내보내기 (text, graph, csv)
  */
 
 import type { Session } from '../types';
-import { replyEphemeral } from '../utils/slack';
+import { replyEphemeral, uploadFile } from '../utils/slack';
 import { formatDuration } from '../utils/format';
 import { getDateRange } from '../utils/date';
 
@@ -16,7 +16,7 @@ type ExportFormat = (typeof FORMATS)[number];
 const PERIODS = ['thisweek', 'lastweek', 'thismonth', 'lastmonth'] as const;
 
 /** /export 핸들러 */
-export async function handleExport(env: Env, teamId: string, userId: string, text: string): Promise<Response> {
+export async function handleExport(env: Env, teamId: string, userId: string, channelId: string, text: string): Promise<Response> {
 	const args = text.split(' ').filter((a) => a.trim());
 
 	// 기본값
@@ -29,11 +29,6 @@ export async function handleExport(env: Env, teamId: string, userId: string, tex
 		periodArgs = args.slice(1);
 	} else {
 		periodArgs = args;
-	}
-
-	// CSV는 아직 미지원
-	if (format === 'csv') {
-		return replyEphemeral(':fairy-wand: CSV 형식은 곧 지원될 예정이에요!');
 	}
 
 	// 기간 파싱
@@ -57,6 +52,8 @@ export async function handleExport(env: Env, teamId: string, userId: string, tex
 			return generateTextExport(sessions, label);
 		case 'graph':
 			return generateGraphExport(sessions, label, startDate, endDate);
+		case 'csv':
+			return generateCsvExport(env, teamId, channelId, sessions, label);
 		default:
 			return replyEphemeral(getUsageMessage());
 	}
@@ -130,7 +127,8 @@ function getUsageMessage(): string {
 		`:fairy-chart: */export 사용법*\n\n` +
 		`*형식*\n` +
 		`• \`text\` - 텍스트 목록 (기본)\n` +
-		`• \`graph\` - 그래프 이미지\n\n` +
+		`• \`graph\` - 그래프 이미지\n` +
+		`• \`csv\` - CSV 형식\n\n` +
 		`*기간*\n` +
 		`• \`thisweek\` - 이번 주 (기본)\n` +
 		`• \`lastweek\` - 지난 주\n` +
@@ -139,7 +137,7 @@ function getUsageMessage(): string {
 		`*예시*\n` +
 		`• \`/export\` - 이번 주 텍스트\n` +
 		`• \`/export graph\` - 이번 주 그래프\n` +
-		`• \`/export text lastweek\` - 지난 주 텍스트\n` +
+		`• \`/export csv lastweek\` - 지난 주 CSV\n` +
 		`• \`/export graph 26-01-01 26-01-15\` - 특정 기간 그래프`
 	);
 }
@@ -181,12 +179,7 @@ function generateTextExport(sessions: Array<Session & { date: string }>, label: 
 }
 
 /** 그래프 형식 출력 (QuickChart.io) */
-function generateGraphExport(
-	sessions: Array<Session & { date: string }>,
-	label: string,
-	startDate: string,
-	endDate: string
-): Response {
+function generateGraphExport(sessions: Array<Session & { date: string }>, label: string, startDate: string, endDate: string): Response {
 	const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
 	// 날짜별 집계 (시간 단위)
@@ -285,6 +278,60 @@ function generateGraphExport(
 		}),
 		{ headers: { 'Content-Type': 'application/json' } }
 	);
+}
+
+/** CSV 형식 출력 (파일 업로드) */
+async function generateCsvExport(
+	env: Env,
+	teamId: string,
+	channelId: string,
+	sessions: Array<Session & { date: string }>,
+	label: string
+): Promise<Response> {
+	const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+	// CSV 헤더
+	const header = '날짜,요일,시작,종료,소요시간(분)';
+
+	// CSV 행 생성
+	const rows = sessions.map((session) => {
+		const d = new Date(session.date + 'T00:00:00Z');
+		const dayName = dayNames[d.getUTCDay()];
+		const startTime = formatTimeShort(session.start);
+		const endTime = formatTimeShort(session.end);
+		const durationMinutes = Math.round(session.duration / 60000);
+
+		return `${session.date},${dayName},${startTime},${endTime},${durationMinutes}`;
+	});
+
+	const csvContent = [header, ...rows].join('\n');
+	const totalDuration = sessions.reduce((sum, s) => sum + s.duration, 0);
+
+	// 파일명 생성 (예: focus-record-2026-01-12-2026-01-18.csv)
+	const today = new Date().toISOString().split('T')[0];
+	const filename = `focus-record-${today}.csv`;
+	const title = `${label} 집중 기록`;
+
+	// 파일 업로드 시도
+	const uploaded = await uploadFile(env, teamId, channelId, csvContent, filename, title);
+
+	if (uploaded) {
+		return replyEphemeral(
+			`:fairy-chart: *${label} 집중 기록*\n\n` +
+				`CSV 파일을 업로드했어요! :fairy-wand:\n` +
+				`총 ${sessions.length}개 세션 | :fairy-hourglass: 합계 ${formatDuration(totalDuration)}`
+		);
+	} else {
+		// 업로드 실패 시 텍스트로 폴백
+		const message =
+			`:fairy-chart: *${label} 집중 기록 (CSV)*\n\n` +
+			'```\n' +
+			csvContent +
+			'\n```\n\n' +
+			`총 ${sessions.length}개 세션 | :fairy-hourglass: 합계 ${formatDuration(totalDuration)}`;
+
+		return replyEphemeral(message);
+	}
 }
 
 /** 시간만 짧게 포맷 (HH:MM) */
