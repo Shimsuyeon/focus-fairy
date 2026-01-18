@@ -93,38 +93,141 @@ function analyzeOverall(sessions: Session[]): Response {
 	return replyEphemeral(message);
 }
 
-/** 시간대별 분석 */
+/** 시간대별 분석 (가로 막대 그래프) */
 function analyzeTimeSlots(sessions: Session[]): Response {
 	const stats = getTimeSlotStats(sessions);
 	const total = Object.values(stats).reduce((sum, v) => sum + v, 0);
 
-	const lines = Object.entries(TIME_SLOTS).map(([key, slot]) => {
-		const duration = stats[key] || 0;
-		const percent = total > 0 ? Math.round((duration / total) * 100) : 0;
-		const bar = '▓'.repeat(Math.round(percent / 5)) + '░'.repeat(20 - Math.round(percent / 5));
-		return `${slot.label} (${slot.range})\n${bar} ${percent}% (${formatDuration(duration)})`;
+	// 차트 데이터 준비
+	const labels = Object.values(TIME_SLOTS).map((slot) => `${slot.label} (${slot.range})`);
+	const data = Object.keys(TIME_SLOTS).map((key) => {
+		const hours = (stats[key] || 0) / (1000 * 60 * 60);
+		return Math.round(hours * 10) / 10;
 	});
 
-	const message = `:fairy-chart: *시간대별 집중 패턴* (최근 30일)\n\n` + lines.join('\n\n');
+	// QuickChart 가로 막대 그래프
+	const chartConfig = {
+		type: 'horizontalBar',
+		data: {
+			labels: labels,
+			datasets: [
+				{
+					label: '집중 시간 (h)',
+					data: data,
+					backgroundColor: ['rgba(255, 206, 86, 0.7)', 'rgba(255, 159, 64, 0.7)', 'rgba(153, 102, 255, 0.7)', 'rgba(75, 192, 192, 0.7)'],
+					borderWidth: 1,
+				},
+			],
+		},
+		options: {
+			scales: {
+				xAxes: [{ ticks: { beginAtZero: true } }],
+			},
+			plugins: {
+				title: { display: true, text: '시간대별 집중 패턴 (최근 30일)' },
+			},
+		},
+	};
 
-	return replyEphemeral(message);
+	const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}&w=500&h=250`;
+
+	// 텍스트 요약
+	const summaryLines = Object.entries(TIME_SLOTS).map(([key, slot]) => {
+		const duration = stats[key] || 0;
+		const percent = total > 0 ? Math.round((duration / total) * 100) : 0;
+		return `${slot.label}: ${percent}% (${formatDuration(duration)})`;
+	});
+
+	const blocks = [
+		{
+			type: 'section',
+			text: { type: 'mrkdwn', text: `:fairy-chart: *시간대별 집중 패턴* (최근 30일)` },
+		},
+		{
+			type: 'image',
+			image_url: chartUrl,
+			alt_text: '시간대별 집중 패턴 그래프',
+		},
+		{
+			type: 'context',
+			elements: [{ type: 'mrkdwn', text: summaryLines.join(' | ') }],
+		},
+	];
+
+	return new Response(JSON.stringify({ response_type: 'ephemeral', blocks }), {
+		headers: { 'Content-Type': 'application/json' },
+	});
 }
 
-/** 요일별 분석 */
+/** 요일별 분석 (가로 막대 그래프) */
 function analyzeDays(sessions: Session[]): Response {
 	const stats = getDayStats(sessions);
 	const total = Object.values(stats).reduce((sum, v) => sum + v, 0);
 
-	const lines = DAY_NAMES.map((dayName, idx) => {
-		const duration = stats[idx] || 0;
-		const percent = total > 0 ? Math.round((duration / total) * 100) : 0;
-		const bar = '▓'.repeat(Math.round(percent / 5)) + '░'.repeat(20 - Math.round(percent / 5));
-		return `${dayName}요일: ${bar} ${percent}% (${formatDuration(duration)})`;
+	// 차트 데이터 준비
+	const labels = DAY_NAMES.map((d) => `${d}요일`);
+	const data = DAY_NAMES.map((_, idx) => {
+		const hours = (stats[idx] || 0) / (1000 * 60 * 60);
+		return Math.round(hours * 10) / 10;
 	});
 
-	const message = `:fairy-chart: *요일별 집중 패턴* (최근 30일)\n\n` + lines.join('\n');
+	// 요일별 색상 (주말은 다른 색)
+	const colors = DAY_NAMES.map((_, idx) =>
+		idx === 0 || idx === 6 ? 'rgba(255, 99, 132, 0.7)' : 'rgba(147, 112, 219, 0.7)'
+	);
 
-	return replyEphemeral(message);
+	// QuickChart 가로 막대 그래프
+	const chartConfig = {
+		type: 'horizontalBar',
+		data: {
+			labels: labels,
+			datasets: [
+				{
+					label: '집중 시간 (h)',
+					data: data,
+					backgroundColor: colors,
+					borderWidth: 1,
+				},
+			],
+		},
+		options: {
+			scales: {
+				xAxes: [{ ticks: { beginAtZero: true } }],
+			},
+			plugins: {
+				title: { display: true, text: '요일별 집중 패턴 (최근 30일)' },
+			},
+		},
+	};
+
+	const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}&w=500&h=300`;
+
+	// 텍스트 요약
+	const summaryLines = DAY_NAMES.map((dayName, idx) => {
+		const duration = stats[idx] || 0;
+		const percent = total > 0 ? Math.round((duration / total) * 100) : 0;
+		return `${dayName}: ${percent}%`;
+	});
+
+	const blocks = [
+		{
+			type: 'section',
+			text: { type: 'mrkdwn', text: `:fairy-chart: *요일별 집중 패턴* (최근 30일)` },
+		},
+		{
+			type: 'image',
+			image_url: chartUrl,
+			alt_text: '요일별 집중 패턴 그래프',
+		},
+		{
+			type: 'context',
+			elements: [{ type: 'mrkdwn', text: summaryLines.join(' | ') }],
+		},
+	];
+
+	return new Response(JSON.stringify({ response_type: 'ephemeral', blocks }), {
+		headers: { 'Content-Type': 'application/json' },
+	});
 }
 
 /** 시간대별 통계 계산 */

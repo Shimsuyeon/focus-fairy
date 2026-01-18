@@ -3,7 +3,16 @@
  * 8명 스터디 그룹을 위한 집중 시간 기록 봇
  */
 
-import { handleStart, handleEnd, handleMyStats, handleToday, handleWeekly, handleReportCommand, handleExport, handlePattern } from './commands';
+import {
+	handleStart,
+	handleEnd,
+	handleMyStats,
+	handleToday,
+	handleWeekly,
+	handleReportCommand,
+	handleExport,
+	handlePattern,
+} from './commands';
 import { reply } from './utils/slack';
 
 export default {
