@@ -28,9 +28,10 @@ async function handleAICheer(env: Env): Promise<Response> {
 		const response = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
 			messages: [
 				{ role: 'system', content: CHEER_SYSTEM_PROMPT },
-				{ role: 'user', content: '응원 메시지를 하나 만들어줘.' },
+				{ role: 'user', content: '응원 메시지를 하나 만들어줘. 매번 다른 메시지로!' },
 			],
 			max_tokens: 100,
+			temperature: 0.8, // 다양성 추가
 		});
 
 		// AI 응답 추출
