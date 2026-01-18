@@ -70,9 +70,9 @@ echo '{"TEAM_ID_1":"xoxb-...", "TEAM_ID_2":"xoxb-..."}' | npx wrangler secret pu
 ### ✨ 새로운 기능
 
 - `/export` 명령어 추가: 개인 집중 기록 내보내기
-  - `/export` 또는 `/export text` - 텍스트 목록
-  - `/export graph` - 일별 막대 그래프 이미지 (QuickChart.io)
-  - `/export csv` - CSV 파일 다운로드
+  - `/export` 또는 `/export text` - 텍스트 목록 (본인에게만 표시)
+  - `/export graph` - 일별 막대 그래프 이미지 (본인에게만 표시)
+  - `/export csv` - CSV 파일 (DM으로 전송)
   - 기간 지정 가능: `thisweek`, `lastweek`, `thismonth`, `26-01-01 26-01-15`
 
 ### 📋 사용 예시
