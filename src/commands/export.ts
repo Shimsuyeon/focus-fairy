@@ -53,7 +53,7 @@ export async function handleExport(env: Env, teamId: string, userId: string, cha
 		case 'graph':
 			return generateGraphExport(sessions, label, startDate, endDate);
 		case 'csv':
-			return generateCsvExport(env, teamId, channelId, sessions, label);
+			return generateCsvExport(env, teamId, userId, sessions, label);
 		default:
 			return replyEphemeral(getUsageMessage());
 	}
@@ -280,11 +280,11 @@ function generateGraphExport(sessions: Array<Session & { date: string }>, label:
 	);
 }
 
-/** CSV 형식 출력 (파일 업로드) */
+/** CSV 형식 출력 (DM으로 파일 업로드) */
 async function generateCsvExport(
 	env: Env,
 	teamId: string,
-	channelId: string,
+	userId: string,
 	sessions: Array<Session & { date: string }>,
 	label: string
 ): Promise<Response> {
@@ -312,13 +312,13 @@ async function generateCsvExport(
 	const filename = `focus-record-${today}.csv`;
 	const title = `${label} 집중 기록`;
 
-	// 파일 업로드 시도
-	const uploaded = await uploadFile(env, teamId, channelId, csvContent, filename, title);
+	// 파일 업로드 시도 (DM으로 전송)
+	const uploaded = await uploadFile(env, teamId, userId, csvContent, filename, title);
 
 	if (uploaded) {
 		return replyEphemeral(
 			`:fairy-chart: *${label} 집중 기록*\n\n` +
-				`CSV 파일을 업로드했어요! :fairy-wand:\n` +
+				`CSV 파일을 DM으로 보내드렸어요! :fairy-wand:\n` +
 				`총 ${sessions.length}개 세션 | :fairy-hourglass: 합계 ${formatDuration(totalDuration)}`
 		);
 	} else {
