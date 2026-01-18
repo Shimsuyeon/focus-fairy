@@ -8,3 +8,4 @@ export { handleMyStats } from './mystats';
 export { handleToday } from './today';
 export { handleWeekly, handleReportCommand } from './report';
 export { handleExport } from './export';
+export { handlePattern } from './pattern';
