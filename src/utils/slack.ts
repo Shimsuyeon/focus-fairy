@@ -126,11 +126,35 @@ interface SlackUserResponse {
 	error?: string;
 }
 
-/** 파일 업로드 (files.upload API) */
+/** 사용자와 DM 채널 열기 */
+async function openDmChannel(token: string, userId: string): Promise<string | null> {
+	try {
+		const response = await fetch('https://slack.com/api/conversations.open', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${token}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ users: userId }),
+		});
+
+		const data = (await response.json()) as { ok: boolean; channel?: { id: string }; error?: string };
+		if (data.ok && data.channel) {
+			return data.channel.id;
+		}
+		console.error('Failed to open DM channel:', data.error);
+		return null;
+	} catch (error) {
+		console.error('Failed to open DM channel:', error);
+		return null;
+	}
+}
+
+/** 파일 업로드 (DM으로 전송) */
 export async function uploadFile(
 	env: Env,
 	teamId: string,
-	channelId: string,
+	userId: string,
 	content: string,
 	filename: string,
 	title: string
@@ -142,6 +166,12 @@ export async function uploadFile(
 	}
 
 	try {
+		// DM 채널 열기
+		const dmChannelId = await openDmChannel(token, userId);
+		if (!dmChannelId) {
+			return false;
+		}
+
 		// files.uploadV2를 위해 먼저 getUploadURLExternal로 URL 받기
 		const getUrlResponse = await fetch(
 			`https://slack.com/api/files.getUploadURLExternal?filename=${encodeURIComponent(filename)}&length=${new Blob([content]).size}`,
@@ -170,7 +200,7 @@ export async function uploadFile(
 			return false;
 		}
 
-		// 업로드 완료 처리
+		// 업로드 완료 처리 (DM 채널로)
 		const completeResponse = await fetch('https://slack.com/api/files.completeUploadExternal', {
 			method: 'POST',
 			headers: {
@@ -179,7 +209,7 @@ export async function uploadFile(
 			},
 			body: JSON.stringify({
 				files: [{ id: urlData.file_id, title }],
-				channel_id: channelId,
+				channel_id: dmChannelId,
 			}),
 		});
 
