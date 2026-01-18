@@ -42,7 +42,7 @@ export default {
 			case '/report':
 				return handleReportCommand(env, teamId, userId, channelId, text);
 			case '/export':
-				return handleExport(env, teamId, userId, text);
+				return handleExport(env, teamId, userId, channelId, text);
 			default:
 				return reply('알 수 없는 명령어예요.');
 		}

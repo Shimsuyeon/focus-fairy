@@ -4,7 +4,7 @@
  */
 
 import type { Session } from '../types';
-import { replyEphemeral } from '../utils/slack';
+import { replyEphemeral, uploadFile } from '../utils/slack';
 import { formatDuration } from '../utils/format';
 import { getDateRange } from '../utils/date';
 
@@ -16,7 +16,13 @@ type ExportFormat = (typeof FORMATS)[number];
 const PERIODS = ['thisweek', 'lastweek', 'thismonth', 'lastmonth'] as const;
 
 /** /export 핸들러 */
-export async function handleExport(env: Env, teamId: string, userId: string, text: string): Promise<Response> {
+export async function handleExport(
+	env: Env,
+	teamId: string,
+	userId: string,
+	channelId: string,
+	text: string
+): Promise<Response> {
 	const args = text.split(' ').filter((a) => a.trim());
 
 	// 기본값
@@ -53,7 +59,7 @@ export async function handleExport(env: Env, teamId: string, userId: string, tex
 		case 'graph':
 			return generateGraphExport(sessions, label, startDate, endDate);
 		case 'csv':
-			return generateCsvExport(sessions, label);
+			return generateCsvExport(env, teamId, channelId, sessions, label);
 		default:
 			return replyEphemeral(getUsageMessage());
 	}
@@ -179,12 +185,7 @@ function generateTextExport(sessions: Array<Session & { date: string }>, label: 
 }
 
 /** 그래프 형식 출력 (QuickChart.io) */
-function generateGraphExport(
-	sessions: Array<Session & { date: string }>,
-	label: string,
-	startDate: string,
-	endDate: string
-): Response {
+function generateGraphExport(sessions: Array<Session & { date: string }>, label: string, startDate: string, endDate: string): Response {
 	const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
 	// 날짜별 집계 (시간 단위)
@@ -285,8 +286,14 @@ function generateGraphExport(
 	);
 }
 
-/** CSV 형식 출력 */
-function generateCsvExport(sessions: Array<Session & { date: string }>, label: string): Response {
+/** CSV 형식 출력 (파일 업로드) */
+async function generateCsvExport(
+	env: Env,
+	teamId: string,
+	channelId: string,
+	sessions: Array<Session & { date: string }>,
+	label: string
+): Promise<Response> {
 	const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
 	// CSV 헤더
@@ -305,16 +312,32 @@ function generateCsvExport(sessions: Array<Session & { date: string }>, label: s
 
 	const csvContent = [header, ...rows].join('\n');
 	const totalDuration = sessions.reduce((sum, s) => sum + s.duration, 0);
-	const totalMinutes = Math.round(totalDuration / 60000);
 
-	const message =
-		`:fairy-chart: *${label} 집중 기록 (CSV)*\n\n` +
-		'```\n' +
-		csvContent +
-		'\n```\n\n' +
-		`총 ${sessions.length}개 세션 | :fairy-hourglass: 합계 ${totalMinutes}분`;
+	// 파일명 생성 (예: focus-record-2026-01-12-2026-01-18.csv)
+	const today = new Date().toISOString().split('T')[0];
+	const filename = `focus-record-${today}.csv`;
+	const title = `${label} 집중 기록`;
 
-	return replyEphemeral(message);
+	// 파일 업로드 시도
+	const uploaded = await uploadFile(env, teamId, channelId, csvContent, filename, title);
+
+	if (uploaded) {
+		return replyEphemeral(
+			`:fairy-chart: *${label} 집중 기록*\n\n` +
+				`CSV 파일을 업로드했어요! :fairy-wand:\n` +
+				`총 ${sessions.length}개 세션 | :fairy-hourglass: 합계 ${formatDuration(totalDuration)}`
+		);
+	} else {
+		// 업로드 실패 시 텍스트로 폴백
+		const message =
+			`:fairy-chart: *${label} 집중 기록 (CSV)*\n\n` +
+			'```\n' +
+			csvContent +
+			'\n```\n\n' +
+			`총 ${sessions.length}개 세션 | :fairy-hourglass: 합계 ${formatDuration(totalDuration)}`;
+
+		return replyEphemeral(message);
+	}
 }
 
 /** 시간만 짧게 포맷 (HH:MM) */

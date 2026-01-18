@@ -28,8 +28,7 @@ export function getBotToken(env: Env, teamId: string): string | null {
 		console.error('Failed to parse SLACK_BOT_TOKENS:', error);
 	}
 
-	// fallback: 단일 토큰 (이전 버전 호환)
-	return env.SLACK_BOT_TOKEN || null;
+	return null;
 }
 
 /** 채널에 메시지 전송 (chat.postMessage API) */
@@ -125,4 +124,74 @@ interface SlackUserResponse {
 		};
 	};
 	error?: string;
+}
+
+/** 파일 업로드 (files.upload API) */
+export async function uploadFile(
+	env: Env,
+	teamId: string,
+	channelId: string,
+	content: string,
+	filename: string,
+	title: string
+): Promise<boolean> {
+	const token = getBotToken(env, teamId);
+	if (!token) {
+		console.error('No bot token for team:', teamId);
+		return false;
+	}
+
+	try {
+		// files.uploadV2를 위해 먼저 getUploadURLExternal로 URL 받기
+		const getUrlResponse = await fetch(
+			`https://slack.com/api/files.getUploadURLExternal?filename=${encodeURIComponent(filename)}&length=${new Blob([content]).size}`,
+			{
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			}
+		);
+
+		const urlData = (await getUrlResponse.json()) as { ok: boolean; upload_url?: string; file_id?: string; error?: string };
+		if (!urlData.ok || !urlData.upload_url || !urlData.file_id) {
+			console.error('Failed to get upload URL:', urlData.error);
+			return false;
+		}
+
+		// 파일 내용 업로드
+		const uploadResponse = await fetch(urlData.upload_url, {
+			method: 'POST',
+			body: content,
+		});
+
+		if (!uploadResponse.ok) {
+			console.error('Failed to upload file content');
+			return false;
+		}
+
+		// 업로드 완료 처리
+		const completeResponse = await fetch('https://slack.com/api/files.completeUploadExternal', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${token}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				files: [{ id: urlData.file_id, title }],
+				channel_id: channelId,
+			}),
+		});
+
+		const completeData = (await completeResponse.json()) as { ok: boolean; error?: string };
+		if (!completeData.ok) {
+			console.error('Failed to complete upload:', completeData.error);
+			return false;
+		}
+
+		return true;
+	} catch (error) {
+		console.error('Failed to upload file:', error);
+		return false;
+	}
 }
