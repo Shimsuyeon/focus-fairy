@@ -1,5 +1,7 @@
 # 🧚‍♀️ 집중요정 (Focus Fairy)
 
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/shimsuyeon)
+
 8명 스터디 그룹을 위한 슬랙 기반 집중 시간 트래커 봇
 
 ## ✨ 기능
