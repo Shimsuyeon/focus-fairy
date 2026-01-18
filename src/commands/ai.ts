@@ -25,7 +25,7 @@ export async function handleAI(env: Env, teamId: string, userId: string, text: s
 /** /ai cheer - AI 응원 메시지 생성 */
 async function handleAICheer(env: Env): Promise<Response> {
 	try {
-		const response = await env.AI.run('@cf/meta/llama-3.2-1b-instruct', {
+		const response = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
 			messages: [
 				{ role: 'system', content: CHEER_SYSTEM_PROMPT },
 				{ role: 'user', content: '응원 메시지를 하나 만들어줘.' },
