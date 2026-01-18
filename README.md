@@ -12,6 +12,7 @@
 | `/mystats` | 내 집중 통계 (이번 주 / 전체 누적) |
 | `/weekly` | 이번 주 랭킹 리포트 |
 | `/report` | 기간별 리포트 (`thisweek`, `lastweek`, `thismonth`, `26-01-01 26-01-07`) |
+| `/export` | 집중 기록 내보내기 (`text`, `graph`, `csv`) |
 
 ## 🛠 기술 스택
 
@@ -43,6 +44,27 @@ echo '{"TEAM_ID_1":"xoxb-...", "TEAM_ID_2":"xoxb-..."}' | npx wrangler secret pu
 ---
 
 # 📋 릴리즈 노트
+
+## [1.5.0] - 2026-01-19
+
+### ✨ 새로운 기능
+
+- `/export` 명령어 추가: 개인 집중 기록 내보내기
+  - `/export` 또는 `/export text` - 텍스트 목록
+  - `/export graph` - 일별 막대 그래프 이미지 (QuickChart.io)
+  - `/export csv` - CSV 파일 다운로드
+  - 기간 지정 가능: `thisweek`, `lastweek`, `thismonth`, `26-01-01 26-01-15`
+
+### 📋 사용 예시
+
+```
+/export                     → 이번 주 텍스트
+/export graph lastweek      → 지난 주 그래프
+/export csv thismonth       → 이번 달 CSV 파일
+/export text 26-01-01 26-01-15  → 특정 기간 텍스트
+```
+
+---
 
 ## [1.4.0] - 2026-01-13
 
