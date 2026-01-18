@@ -16,13 +16,7 @@ type ExportFormat = (typeof FORMATS)[number];
 const PERIODS = ['thisweek', 'lastweek', 'thismonth', 'lastmonth'] as const;
 
 /** /export 핸들러 */
-export async function handleExport(
-	env: Env,
-	teamId: string,
-	userId: string,
-	channelId: string,
-	text: string
-): Promise<Response> {
+export async function handleExport(env: Env, teamId: string, userId: string, channelId: string, text: string): Promise<Response> {
 	const args = text.split(' ').filter((a) => a.trim());
 
 	// 기본값
