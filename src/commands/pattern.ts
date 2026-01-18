@@ -81,11 +81,11 @@ function analyzeOverall(sessions: Session[]): Response {
 
 	const message =
 		`:fairy-chart: *나의 집중 패턴* (최근 30일)\n\n` +
-		`⏰ 가장 집중 잘 되는 시간: *${timeSlotInfo.label}* (${timeSlotInfo.range}) - ${timeSlotPercent}%\n` +
-		`📅 가장 많이 집중한 요일: *${DAY_NAMES[parseInt(topDay[0])]}요일* - ${formatDuration(topDay[1])}\n` +
-		`⏱️ 평균 세션 길이: *${formatDuration(avgSessionLength)}*\n` +
-		`🔥 최장 세션: *${formatDuration(longestSession)}*\n` +
-		`📈 주간 평균: *${formatDuration(weeklyAvg)}*\n\n` +
+		`:fairy-sun: 가장 집중 잘 되는 시간: *${timeSlotInfo.label}* (${timeSlotInfo.range}) - ${timeSlotPercent}%\n` +
+		`:fairy-confetti: 가장 많이 집중한 요일: *${DAY_NAMES[parseInt(topDay[0])]}요일* - ${formatDuration(topDay[1])}\n` +
+		`:fairy-hourglass: 평균 세션 길이: *${formatDuration(avgSessionLength)}*\n` +
+		`:fairy-fire: 최장 세션: *${formatDuration(longestSession)}*\n` +
+		`:fairy-sprout: 주간 평균: *${formatDuration(weeklyAvg)}*\n\n` +
 		`_더 자세히 보려면:_\n` +
 		`• \`/pattern time\` - 시간대별 분석\n` +
 		`• \`/pattern day\` - 요일별 분석`;
