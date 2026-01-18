@@ -172,9 +172,7 @@ function analyzeDays(sessions: Session[]): Response {
 	});
 
 	// 요일별 색상 (주말은 다른 색)
-	const colors = DAY_NAMES.map((_, idx) =>
-		idx === 0 || idx === 6 ? 'rgba(255, 99, 132, 0.7)' : 'rgba(147, 112, 219, 0.7)'
-	);
+	const colors = DAY_NAMES.map((_, idx) => (idx === 0 || idx === 6 ? 'rgba(255, 99, 132, 0.7)' : 'rgba(147, 112, 219, 0.7)'));
 
 	// QuickChart 가로 막대 그래프
 	const chartConfig = {
@@ -267,4 +265,3 @@ function getDayStats(sessions: Session[]): Record<number, number> {
 
 	return stats;
 }
-
