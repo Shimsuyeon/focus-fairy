@@ -39,17 +39,25 @@ export async function handlePattern(env: Env, teamId: string, userId: string, te
 	}
 }
 
-/** 최근 N일 세션 수집 */
+/** 최근 N일 세션 수집 (병렬 처리) */
 async function collectRecentSessions(env: Env, teamId: string, userId: string, days: number): Promise<Session[]> {
-	const sessions: Session[] = [];
 	const now = new Date();
 
+	// 날짜 키 생성
+	const dateKeys: string[] = [];
 	for (let i = 0; i < days; i++) {
 		const d = new Date(now);
 		d.setDate(d.getDate() - i);
-		const dateKey = d.toISOString().split('T')[0];
+		dateKeys.push(d.toISOString().split('T')[0]);
+	}
 
-		const daySessions: Session[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:sessions:${dateKey}`)) || '[]');
+	// 병렬로 모든 날짜의 데이터를 읽기
+	const results = await Promise.all(dateKeys.map((key) => env.STUDY_KV.get(`${teamId}:sessions:${key}`)));
+
+	// 결과 병합
+	const sessions: Session[] = [];
+	for (const result of results) {
+		const daySessions: Session[] = JSON.parse(result || '[]');
 		sessions.push(...daySessions.filter((s) => s.userId === userId));
 	}
 
