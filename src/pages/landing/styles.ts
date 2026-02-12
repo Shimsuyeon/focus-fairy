@@ -130,6 +130,29 @@ body {
 	transform: translate(-50%, -50%) scale(1.2);
 }
 
+.fruit::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	bottom: calc(100% + 8px);
+	left: 50%;
+	transform: translateX(-50%);
+	background: rgba(0, 0, 0, 0.85);
+	color: white;
+	padding: 6px 12px;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 500;
+	white-space: nowrap;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--transition-fast);
+	z-index: 100;
+}
+
+.fruit:hover::after {
+	opacity: 1;
+}
+
 .fruit.active {
 	animation: fruitPulse 1.5s ease-in-out infinite;
 }

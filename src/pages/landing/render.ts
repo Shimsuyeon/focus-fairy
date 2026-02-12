@@ -57,7 +57,7 @@ export function generateFocusTreeHTML(stats: TeamMemberStats[]): string {
  */
 function renderFruit(fruit: FruitData): string {
 	const activeClass = fruit.isActive ? 'active' : '';
-	const title = `${formatDuration(fruit.weeklyDuration)} 집중${fruit.isActive ? ' (집중 중!)' : ''}`;
+	const tooltipText = `${formatDuration(fruit.weeklyDuration)}${fruit.isActive ? ' 🔥' : ''}`;
 
 	return `<div 
 		class="fruit ${activeClass}"
@@ -69,7 +69,7 @@ function renderFruit(fruit: FruitData): string {
 			background: radial-gradient(circle at 30% 30%, ${fruit.color}, ${fruit.color}88);
 			box-shadow: 0 0 ${fruit.glowIntensity}px ${fruit.glowIntensity / 2}px ${fruit.color}88;
 		"
-		title="${title}"
+		data-tooltip="${tooltipText}"
 	></div>`;
 }
 
