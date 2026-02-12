@@ -62,11 +62,14 @@ body {
 }
 
 .title {
+	font-family: 'Tangerine', cursive;
 	color: var(--color-primary);
-	font-size: 1.5rem;
+	font-size: 3.5rem;
+	font-weight: 700;
 	margin-bottom: 2rem;
-	text-shadow: 0 0 20px rgba(167, 139, 250, 0.5);
+	text-shadow: 0 0 15px rgba(167, 139, 250, 0.4);
 	z-index: 10;
+	letter-spacing: 3px;
 }
 
 /* ========== 나무 ========== */
