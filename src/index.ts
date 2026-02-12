@@ -14,12 +14,18 @@ import {
 	handlePattern,
 } from './commands';
 import { reply } from './utils/slack';
+import { handleLanding } from './pages/landing';
+
+// 기본 팀 ID (스터디 워크스페이스)
+const DEFAULT_TEAM_ID = 'T0A2SV0H1QV';
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		// GET 요청: 헬스체크
+		// GET 요청: 집중의 나무 랜딩 페이지
 		if (request.method !== 'POST') {
-			return new Response('집중요정 Bot is running! 🧚‍♀️');
+			const url = new URL(request.url);
+			const teamId = url.searchParams.get('team') || DEFAULT_TEAM_ID;
+			return handleLanding(env, teamId);
 		}
 
 		// 슬랙 커맨드 엔드포인트만 허용
