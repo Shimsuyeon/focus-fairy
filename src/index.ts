@@ -16,15 +16,12 @@ import {
 import { reply } from './utils/slack';
 import { handleLanding } from './pages/landing/index';
 
-// 기본 팀 ID (스터디 워크스페이스)
-const DEFAULT_TEAM_ID = 'T0A2SV0H1QV';
-
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		// GET 요청: 집중의 나무 랜딩 페이지
 		if (request.method !== 'POST') {
 			const url = new URL(request.url);
-			const teamId = url.searchParams.get('team') || DEFAULT_TEAM_ID;
+			const teamId = url.searchParams.get('team') || env.DEFAULT_TEAM_ID;
 			return handleLanding(env, teamId);
 		}
 

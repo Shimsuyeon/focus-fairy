@@ -8,6 +8,7 @@ declare namespace Cloudflare {
 	interface Env {
 		STUDY_KV: KVNamespace;
 		SLACK_BOT_TOKENS: string;
+		DEFAULT_TEAM_ID: string;
 	}
 }
 interface Env extends Cloudflare.Env {}
