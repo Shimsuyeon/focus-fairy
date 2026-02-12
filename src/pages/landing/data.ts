@@ -4,21 +4,34 @@
 
 import type { Session } from '../../types';
 import type { TeamMemberStats, FruitData, FireflyData } from './types';
-import { FRUIT_COLORS, FRUIT_SIZE, DATA_COLLECTION_DAYS } from './constants';
+import { FRUIT_COLORS, FRUIT_SIZE } from './constants';
 
 /**
- * 팀 통계 수집 (병렬 처리)
+ * 이번 주 월요일부터 오늘까지의 날짜 키 생성
  */
-export async function collectTeamStats(env: Env, teamId: string): Promise<TeamMemberStats[]> {
+function getWeekDateKeys(): string[] {
 	const now = new Date();
-	const statsMap = new Map<string, TeamMemberStats>();
+	const dayOfWeek = now.getDay(); // 0(일) ~ 6(토)
+	// 월요일까지 며칠 전인지 계산 (일요일이면 6일 전, 월요일이면 0일 전)
+	const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
-	// 최근 N일 날짜 키 생성
-	const dateKeys = Array.from({ length: DATA_COLLECTION_DAYS }, (_, i) => {
+	const dateKeys: string[] = [];
+	for (let i = daysFromMonday; i >= 0; i--) {
 		const d = new Date(now);
 		d.setDate(d.getDate() - i);
-		return d.toISOString().split('T')[0];
-	});
+		dateKeys.push(d.toISOString().split('T')[0]);
+	}
+	return dateKeys;
+}
+
+/**
+ * 팀 통계 수집 (병렬 처리) - 이번 주 월~오늘
+ */
+export async function collectTeamStats(env: Env, teamId: string): Promise<TeamMemberStats[]> {
+	const statsMap = new Map<string, TeamMemberStats>();
+
+	// 이번 주 월요일~오늘 날짜 키 생성
+	const dateKeys = getWeekDateKeys();
 
 	// 병렬로 KV 읽기
 	const [sessionResults, activeData] = await Promise.all([

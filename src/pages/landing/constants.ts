@@ -22,6 +22,3 @@ export const FRUIT_SIZE = {
 	min: 20,
 	max: 50,
 } as const;
-
-/** 데이터 수집 기간 (일) */
-export const DATA_COLLECTION_DAYS = 7;
