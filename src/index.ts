@@ -14,7 +14,7 @@ import {
 	handlePattern,
 } from './commands';
 import { reply } from './utils/slack';
-import { handleLanding } from './pages/landing';
+import { handleLanding } from './pages/landing/index';
 
 // 기본 팀 ID (스터디 워크스페이스)
 const DEFAULT_TEAM_ID = 'T0A2SV0H1QV';
