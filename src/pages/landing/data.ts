@@ -33,11 +33,10 @@ export async function collectTeamStats(env: Env, teamId: string): Promise<TeamMe
 	// 이번 주 월요일~오늘 날짜 키 생성
 	const dateKeys = getWeekDateKeys();
 
-	// 병렬로 KV 읽기
-	const [sessionResults, activeData] = await Promise.all([
-		Promise.all(dateKeys.map((key) => env.STUDY_KV.get(`${teamId}:sessions:${key}`))),
-		env.STUDY_KV.get(`${teamId}:active`),
-	]);
+	// 세션 데이터 먼저 수집
+	const sessionResults = await Promise.all(
+		dateKeys.map((key) => env.STUDY_KV.get(`${teamId}:sessions:${key}`))
+	);
 
 	// 세션 데이터 집계
 	for (const result of sessionResults) {
@@ -56,18 +55,19 @@ export async function collectTeamStats(env: Env, teamId: string): Promise<TeamMe
 		}
 	}
 
-	// 현재 집중 중인 사용자 표시
-	if (activeData) {
-		const activeSessions: Record<string, { start: number }> = JSON.parse(activeData);
-		for (const userId of Object.keys(activeSessions)) {
-			const existing = statsMap.get(userId);
-			if (existing) {
-				existing.isActive = true;
-			} else {
-				statsMap.set(userId, { userId, weeklyDuration: 0, isActive: true });
-			}
+	// 현재 집중 중인 사용자 확인 (checkin 키 존재 여부)
+	const userIds = Array.from(statsMap.keys());
+	const checkinResults = await Promise.all(
+		userIds.map((userId) => env.STUDY_KV.get(`${teamId}:checkin:${userId}`))
+	);
+
+	// isActive 플래그 설정
+	userIds.forEach((userId, idx) => {
+		if (checkinResults[idx]) {
+			const user = statsMap.get(userId);
+			if (user) user.isActive = true;
 		}
-	}
+	});
 
 	return Array.from(statsMap.values());
 }
