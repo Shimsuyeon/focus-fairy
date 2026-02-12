@@ -14,12 +14,15 @@ import {
 	handlePattern,
 } from './commands';
 import { reply } from './utils/slack';
+import { handleLanding } from './pages/landing/index';
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		// GET 요청: 헬스체크
+		// GET 요청: 집중의 나무 랜딩 페이지
 		if (request.method !== 'POST') {
-			return new Response('집중요정 Bot is running! 🧚‍♀️');
+			const url = new URL(request.url);
+			const teamId = url.searchParams.get('team') || env.DEFAULT_TEAM_ID;
+			return handleLanding(env, teamId);
 		}
 
 		// 슬랙 커맨드 엔드포인트만 허용
