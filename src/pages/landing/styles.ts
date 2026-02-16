@@ -210,6 +210,78 @@ body {
 	50% { opacity: 1; }
 }
 
+/* ========== 주차 네비게이션 ========== */
+.week-nav {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	z-index: 10;
+	margin-bottom: 1.5rem;
+	user-select: none;
+}
+
+.week-nav-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background: rgba(167, 139, 250, 0.15);
+	color: var(--color-primary);
+	font-size: 1.4rem;
+	text-decoration: none;
+	transition: all var(--transition-fast);
+	border: 1px solid rgba(167, 139, 250, 0.2);
+	cursor: pointer;
+	line-height: 1;
+}
+
+.week-nav-btn:hover:not(.disabled) {
+	background: rgba(167, 139, 250, 0.3);
+	transform: scale(1.1);
+	box-shadow: 0 0 12px rgba(167, 139, 250, 0.3);
+}
+
+.week-nav-btn.disabled {
+	opacity: 0.25;
+	cursor: default;
+	pointer-events: none;
+}
+
+.week-nav-label {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-width: 120px;
+}
+
+.week-nav-title {
+	color: var(--color-primary);
+	font-size: 1rem;
+	font-weight: 600;
+	letter-spacing: 0.5px;
+}
+
+.week-nav-range {
+	color: var(--color-text-dim);
+	font-size: 0.75rem;
+	margin-top: 2px;
+}
+
+/* ========== 빈 주차 메시지 ========== */
+.empty-message {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	color: var(--color-text-dim);
+	font-size: 0.95rem;
+	text-align: center;
+	z-index: 10;
+	white-space: nowrap;
+}
+
 /* ========== 통계 & 푸터 ========== */
 .stats {
 	margin-top: 2rem;
