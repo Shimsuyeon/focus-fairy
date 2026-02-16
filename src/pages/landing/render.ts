@@ -71,7 +71,7 @@ export function generateFocusTreeHTML(stats: TeamMemberStats[], weekInfo: WeekIn
 
 	${fireflies.map(renderFirefly).join('')}
 
-	<div class="info">집중요정 Focus Fairy 🧚‍♀️</div>
+	<div class="info">집중요정 Focus Fairy 🧚‍♀️ © <a href="https://developer-dreamer.tistory.com/" target="_blank" rel="noopener">Shimsuyeon</a></div>
 </body>
 </html>`;
 }

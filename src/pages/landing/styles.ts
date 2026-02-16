@@ -302,4 +302,14 @@ body {
 	font-size: 0.8rem;
 	text-align: center;
 }
+
+.info a {
+	color: var(--color-text-dim);
+	text-decoration: none;
+	transition: color var(--transition-fast);
+}
+
+.info a:hover {
+	color: var(--color-primary);
+}
 `;
