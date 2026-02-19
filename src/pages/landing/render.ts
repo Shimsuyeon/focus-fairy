@@ -2,7 +2,7 @@
  * 랜딩 페이지 HTML 렌더링 함수
  */
 
-import type { TeamMemberStats, FruitData, FireflyData } from './types';
+import type { TeamMemberStats, FruitData, FireflyData, WeekInfo } from './types';
 import { FIREFLY_COUNT } from './constants';
 import { styles } from './styles';
 import { generateFruitData, generateFireflyData } from './data';
@@ -11,11 +11,16 @@ import { formatDuration } from '../../utils/format';
 /**
  * Focus Tree 전체 HTML 생성
  */
-export function generateFocusTreeHTML(stats: TeamMemberStats[]): string {
+export function generateFocusTreeHTML(stats: TeamMemberStats[], weekInfo: WeekInfo): string {
 	const fruits = generateFruitData(stats);
 	const fireflies = generateFireflyData(FIREFLY_COUNT);
 	const totalDuration = stats.reduce((sum, s) => sum + s.weeklyDuration, 0);
 	const activeCount = stats.filter((s) => s.isActive).length;
+
+	const weekLabel = weekInfo.isCurrentWeek ? '이번 주' : weekInfo.label;
+	const emptyMessage = stats.length === 0
+		? `<div class="empty-message">이 주에는 아직 기록이 없어요 🌙</div>`
+		: '';
 
 	return `<!DOCTYPE html>
 <html lang="ko">
@@ -33,24 +38,40 @@ export function generateFocusTreeHTML(stats: TeamMemberStats[]): string {
 	
 	<div class="container">
 		<h1 class="title">Focus Tree</h1>
+
+		<nav class="week-nav">
+			${weekInfo.prevMonday !== weekInfo.monday
+				? `<a class="week-nav-btn" href="?week=${weekInfo.prevMonday}" aria-label="이전 주">&#8249;</a>`
+				: `<span class="week-nav-btn disabled">&#8249;</span>`
+			}
+			<div class="week-nav-label">
+				<span class="week-nav-title">${weekLabel}</span>
+				<span class="week-nav-range">${weekInfo.dateRange}</span>
+			</div>
+			${weekInfo.nextMonday
+				? `<a class="week-nav-btn" href="?week=${weekInfo.nextMonday}" aria-label="다음 주">&#8250;</a>`
+				: `<span class="week-nav-btn disabled">&#8250;</span>`
+			}
+		</nav>
 		
 		<div class="tree">
 			<div class="canopy-glow"></div>
 			<div class="canopy"></div>
 			<div class="trunk"></div>
 			${fruits.map(renderFruit).join('')}
+			${emptyMessage}
 		</div>
 
 		<div class="stats">
 			<strong>${stats.length}</strong>명의 요정 | 
-			이번 주 총 <strong>${formatDuration(totalDuration)}</strong> 집중
+			${weekLabel} 총 <strong>${formatDuration(totalDuration)}</strong> 집중
 			${activeCount > 0 ? ` | 🔥 ${activeCount}명 집중 중` : ''}
 		</div>
 	</div>
 
 	${fireflies.map(renderFirefly).join('')}
 
-	<div class="info">집중요정 Focus Fairy 🧚‍♀️</div>
+	<div class="info">집중요정 Focus Fairy 🧚‍♀️ © <a href="https://developer-dreamer.tistory.com/217" target="_blank" rel="noopener">Shimsuyeon</a></div>
 </body>
 </html>`;
 }

@@ -22,3 +22,6 @@ export const FRUIT_SIZE = {
 	min: 20,
 	max: 50,
 } as const;
+
+/** 주차 히스토리 최대 주 수 */
+export const MAX_HISTORY_WEEKS = 8;

@@ -22,7 +22,8 @@ export default {
 		if (request.method !== 'POST') {
 			const url = new URL(request.url);
 			const teamId = url.searchParams.get('team') || env.DEFAULT_TEAM_ID;
-			return handleLanding(env, teamId);
+			const weekParam = url.searchParams.get('week');
+			return handleLanding(env, teamId, weekParam);
 		}
 
 		// 슬랙 커맨드 엔드포인트만 허용
