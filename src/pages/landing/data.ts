@@ -128,16 +128,27 @@ export async function collectTeamStats(env: Env, teamId: string, weekInfo: WeekI
 		}
 	}
 
-	// 현재 주일 때만 활성 사용자 확인
+	// 현재 주일 때만 활성 사용자 확인 (checkin 키 목록으로 전체 탐색)
 	if (weekInfo.isCurrentWeek) {
-		const userIds = Array.from(statsMap.keys());
-		const checkinResults = await Promise.all(
-			userIds.map((userId) => env.STUDY_KV.get(`${teamId}:checkin:${userId}`))
+		const checkinList = await env.STUDY_KV.list({ prefix: `${teamId}:checkin:` });
+		const checkinValues = await Promise.all(
+			checkinList.keys.map((key) => env.STUDY_KV.get(key.name))
 		);
-		userIds.forEach((userId, idx) => {
-			if (checkinResults[idx]) {
-				const user = statsMap.get(userId);
-				if (user) user.isActive = true;
+		checkinList.keys.forEach((key, idx) => {
+			const userId = key.name.replace(`${teamId}:checkin:`, '');
+			const startTime = parseInt(checkinValues[idx] || '0');
+			const currentSessionDuration = startTime > 0 ? Date.now() - startTime : 0;
+
+			const existing = statsMap.get(userId);
+			if (existing) {
+				existing.isActive = true;
+				existing.weeklyDuration += currentSessionDuration;
+			} else {
+				statsMap.set(userId, {
+					userId,
+					weeklyDuration: currentSessionDuration,
+					isActive: true,
+				});
 			}
 		});
 	}
