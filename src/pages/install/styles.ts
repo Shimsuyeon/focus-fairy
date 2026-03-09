@@ -260,17 +260,20 @@ export function resultPageStyles(color: string): string {
 			min-height: 100vh;
 			background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #0d1f0d 100%);
 			display: flex;
+			flex-direction: column;
 			align-items: center;
 			justify-content: center;
 			font-family: 'Segoe UI', system-ui, sans-serif;
 			color: rgba(255, 255, 255, 0.85);
 			padding: 2rem 1rem;
+			gap: 1.5rem;
 		}
 		.card {
 			background: rgba(255, 255, 255, 0.05);
 			border: 1px solid ${color}44;
 			border-radius: 16px;
 			padding: 2.5rem;
+			width: 100%;
 			max-width: 460px;
 			text-align: center;
 		}
@@ -317,6 +320,33 @@ export function resultPageStyles(color: string): string {
 			font-size: 0.75rem;
 			color: rgba(255, 255, 255, 0.4);
 			transition: color 0.2s ease;
+		}
+
+		.command-card {
+			text-align: left;
+		}
+		.command-card h2 {
+			font-size: 1rem;
+			color: rgba(255, 255, 255, 0.7);
+			margin-bottom: 1rem;
+			text-align: center;
+		}
+		.command-card table {
+			width: 100%;
+			border-collapse: collapse;
+		}
+		.command-card td {
+			padding: 6px 8px;
+			font-size: 0.85rem;
+			color: rgba(255, 255, 255, 0.6);
+			border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+		}
+		.command-card td.cmd {
+			font-family: 'SF Mono', 'Consolas', monospace;
+			color: #a78bfa;
+			font-weight: 600;
+			white-space: nowrap;
+			width: 90px;
 		}
 	`;
 }
