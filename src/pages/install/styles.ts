@@ -346,5 +346,12 @@ export function resultPageStyles(color: string): string {
 			white-space: nowrap;
 			width: 90px;
 		}
+		.command-ref td.cmd-sub {
+			font-family: 'SF Mono', 'Consolas', monospace;
+			font-size: 0.75rem;
+			color: rgba(167, 139, 250, 0.5);
+			padding: 0 8px 6px 8px;
+			border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+		}
 	`;
 }

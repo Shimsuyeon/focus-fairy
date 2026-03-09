@@ -157,12 +157,15 @@ export function renderResultPage(success: boolean, message: string): string {
 				<table>
 					<tr><td class="cmd">/start</td><td>집중 시작</td></tr>
 					<tr><td class="cmd">/end</td><td>집중 종료</td></tr>
-					<tr><td class="cmd">/today</td><td>오늘 집중 현황</td></tr>
-					<tr><td class="cmd">/mystats</td><td>내 집중 통계</td></tr>
-					<tr><td class="cmd">/weekly</td><td>이번 주 랭킹</td></tr>
-					<tr><td class="cmd">/report</td><td>기간별 리포트</td></tr>
-					<tr><td class="cmd">/export</td><td>기록 내보내기</td></tr>
-					<tr><td class="cmd">/pattern</td><td>집중 패턴 분석</td></tr>
+					<tr><td class="cmd">/today</td><td>오늘 팀원들이 얼마나 집중했는지 확인</td></tr>
+					<tr><td class="cmd">/weekly</td><td>이번 주 팀 집중 랭킹</td></tr>
+					<tr><td class="cmd">/mystats</td><td>나의 이번 주·누적 집중 통계</td></tr>
+					<tr><td class="cmd">/report</td><td>기간을 지정해서 팀 리포트 조회</td></tr>
+					<tr><td class="cmd-sub" colspan="2">thisweek · lastweek · thismonth · 날짜</td></tr>
+					<tr><td class="cmd">/export</td><td>내 기록을 내보내서 분석에 활용</td></tr>
+					<tr><td class="cmd-sub" colspan="2">text · graph · csv</td></tr>
+					<tr><td class="cmd">/pattern</td><td>나의 시간대·요일별 집중 패턴 분석</td></tr>
+					<tr><td class="cmd-sub" colspan="2">time · day</td></tr>
 				</table>
 			</div>
 			<script>
