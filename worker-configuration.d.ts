@@ -8,6 +8,8 @@ declare namespace Cloudflare {
 	interface Env {
 		STUDY_KV: KVNamespace;
 		SLACK_BOT_TOKENS: string;
+		SLACK_CLIENT_ID: string;
+		SLACK_CLIENT_SECRET: string;
 		DEFAULT_TEAM_ID: string;
 	}
 }
