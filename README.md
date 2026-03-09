@@ -2,7 +2,7 @@
 
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/shimsuyeon)
 
-8명 스터디 그룹을 위한 슬랙 기반 집중 시간 트래커 봇
+슬랙 기반 집중 시간 트래커 봇 — 멀티 워크스페이스 지원
 
 > 📖 [집중요정 개발기 — 쓰던 봇이 유료 전환? 그럼 직접 만들지](https://developer-dreamer.tistory.com/217)
 
@@ -52,11 +52,39 @@ echo '{"TEAM_ID_1":"xoxb-...", "TEAM_ID_2":"xoxb-..."}' | npx wrangler secret pu
 - 요정 컨셉의 커스텀 이모지 (:fairy-wand:, :fairy-fire: 등)
 - 세션 종료 시 랜덤 격려 메시지 15종
 - 한국 시간대(KST) 기준 동작
-- 멀티 워크스페이스 지원
+- **멀티 워크스페이스 지원** — Slack OAuth로 원클릭 설치
+- **온보딩 가이드** — 커스텀 이모지 등록부터 봇 초대까지 단계별 안내
 
 ---
 
 # 📋 릴리즈 노트
+
+## [1.8.0] - 2026-02-05
+
+### ✨ 새로운 기능
+
+- **멀티 워크스페이스 배포** — Slack OAuth 2.0 기반 공개 설치 지원
+  - 설치 URL 하나로 어떤 워크스페이스든 집중요정을 추가 가능
+  - 워크스페이스별 봇 토큰을 KV에 자동 저장·관리
+- **온보딩 가이드 페이지** 신규 추가
+  - 커스텀 이모지 등록 → 봇 설치의 2단계 안내
+  - 프로그레시브 디스클로저 UI로 단계별 진행
+  - 이모지 등록/미등록 비교 이미지 제공
+  - 워크스페이스 URL 유연 입력 (서브도메인, 전체 URL 모두 지원)
+- **설치 완료 페이지** — 봇 초대 안내 및 커맨드 사용법 제공
+
+### 🎨 UI/UX
+
+- 이모지 등록을 선택 사항으로 분리 (등록할래요 / 건너뛰기)
+- 벌크 이모지 등록 도구 안내 및 ZIP 다운로드 제공
+- `/invite @집중요정` 복사 가능한 코드 블록 형태로 제공
+
+### 🔧 기술 개선
+
+- `src/oauth.ts` → `src/pages/install/` 모듈 분리 (styles, render, images, index)
+- 이미지 에셋을 GitHub raw URL로 관리하여 번들 사이즈 최적화
+
+---
 
 ## [1.7.1] - 2026-02-26
 
@@ -198,7 +226,7 @@ echo '{"TEAM_ID_1":"xoxb-...", "TEAM_ID_2":"xoxb-..."}' | npx wrangler secret pu
 
 ### 🎉 첫 출시
 
-8명 스터디 그룹을 위한 슬랙 기반 집중 시간 트래커 봇
+슬랙 기반 집중 시간 트래커 봇
 
 ### 📌 주요 기능
 
