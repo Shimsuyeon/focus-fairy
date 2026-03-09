@@ -16,10 +16,14 @@ export function replyEphemeral(text: string): Response {
 	});
 }
 
-/** Team ID에 맞는 Bot Token 가져오기 */
-export function getBotToken(env: Env, teamId: string): string | null {
+/** Team ID에 맞는 Bot Token 가져오기 (KV 우선, 시크릿 폴백) */
+export async function getBotToken(env: Env, teamId: string): Promise<string | null> {
+	// 1. KV에서 조회 (OAuth 설치된 토큰)
+	const kvToken = await env.STUDY_KV.get(`tokens:${teamId}`);
+	if (kvToken) return kvToken;
+
+	// 2. 시크릿 폴백 (기존 수동 등록 토큰)
 	try {
-		// JSON 형식: {"T123":"xoxb-...", "T456":"xoxb-..."}
 		if (env.SLACK_BOT_TOKENS) {
 			const tokens = JSON.parse(env.SLACK_BOT_TOKENS) as Record<string, string>;
 			return tokens[teamId] || null;
@@ -33,7 +37,7 @@ export function getBotToken(env: Env, teamId: string): string | null {
 
 /** 채널에 메시지 전송 (chat.postMessage API) */
 export async function postMessage(env: Env, teamId: string, channel: string, text: string): Promise<boolean> {
-	const token = getBotToken(env, teamId);
+	const token = await getBotToken(env, teamId);
 	if (!token) {
 		console.error('No bot token for team:', teamId);
 		return false;
@@ -72,7 +76,7 @@ export async function getUserName(env: Env, teamId: string, userId: string): Pro
 		return userNameCache.get(cacheKey)!;
 	}
 
-	const token = getBotToken(env, teamId);
+	const token = await getBotToken(env, teamId);
 	if (!token) {
 		return userId;
 	}
@@ -159,7 +163,7 @@ export async function uploadFile(
 	filename: string,
 	title: string
 ): Promise<boolean> {
-	const token = getBotToken(env, teamId);
+	const token = await getBotToken(env, teamId);
 	if (!token) {
 		console.error('No bot token for team:', teamId);
 		return false;

@@ -15,19 +15,28 @@ import {
 } from './commands';
 import { reply } from './utils/slack';
 import { handleLanding } from './pages/landing/index';
+import { handleOAuthInstall, handleOAuthCallback } from './oauth';
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		// GET 요청: 집중의 나무 랜딩 페이지
+		const url = new URL(request.url);
+
+		// GET 요청 라우팅
 		if (request.method !== 'POST') {
-			const url = new URL(request.url);
-			const teamId = url.searchParams.get('team') || env.DEFAULT_TEAM_ID;
-			const weekParam = url.searchParams.get('week');
-			return handleLanding(env, teamId, weekParam);
+			switch (url.pathname) {
+				case '/slack/oauth/install':
+					return handleOAuthInstall(env);
+				case '/slack/oauth/callback':
+					return handleOAuthCallback(request, env);
+				default: {
+					const teamId = url.searchParams.get('team') || env.DEFAULT_TEAM_ID;
+					const weekParam = url.searchParams.get('week');
+					return handleLanding(env, teamId, weekParam);
+				}
+			}
 		}
 
 		// 슬랙 커맨드 엔드포인트만 허용
-		const url = new URL(request.url);
 		if (url.pathname !== '/slack/commands') {
 			return new Response('Not found', { status: 404 });
 		}
