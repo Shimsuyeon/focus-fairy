@@ -273,6 +273,7 @@ export function resultPageStyles(color: string): string {
 			border: 1px solid ${color}44;
 			border-radius: 16px;
 			padding: 2.5rem;
+			width: 100%;
 			max-width: 460px;
 			text-align: center;
 		}
