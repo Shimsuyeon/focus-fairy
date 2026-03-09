@@ -152,6 +152,19 @@ export function renderResultPage(success: boolean, message: string): string {
 					<span class="copy-btn">복사</span>
 				</div>
 			</div>
+			<div class="command-ref">
+				<h2>📖 사용 가능한 커맨드</h2>
+				<table>
+					<tr><td class="cmd">/start</td><td>집중 시작</td></tr>
+					<tr><td class="cmd">/end</td><td>집중 종료</td></tr>
+					<tr><td class="cmd">/today</td><td>오늘 집중 현황</td></tr>
+					<tr><td class="cmd">/mystats</td><td>내 집중 통계</td></tr>
+					<tr><td class="cmd">/weekly</td><td>이번 주 랭킹</td></tr>
+					<tr><td class="cmd">/report</td><td>기간별 리포트</td></tr>
+					<tr><td class="cmd">/export</td><td>기록 내보내기</td></tr>
+					<tr><td class="cmd">/pattern</td><td>집중 패턴 분석</td></tr>
+				</table>
+			</div>
 			<script>
 				function copyCommand(el, text) {
 					navigator.clipboard.writeText(text);

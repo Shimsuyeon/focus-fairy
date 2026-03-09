@@ -318,5 +318,33 @@ export function resultPageStyles(color: string): string {
 			color: rgba(255, 255, 255, 0.4);
 			transition: color 0.2s ease;
 		}
+
+		.command-ref {
+			margin-top: 2rem;
+			padding-top: 1.5rem;
+			border-top: 1px solid rgba(255, 255, 255, 0.1);
+		}
+		.command-ref h2 {
+			font-size: 1rem;
+			color: rgba(255, 255, 255, 0.7);
+			margin-bottom: 1rem;
+		}
+		.command-ref table {
+			width: 100%;
+			border-collapse: collapse;
+		}
+		.command-ref td {
+			padding: 6px 8px;
+			font-size: 0.85rem;
+			color: rgba(255, 255, 255, 0.6);
+			border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+		}
+		.command-ref td.cmd {
+			font-family: 'SF Mono', 'Consolas', monospace;
+			color: #a78bfa;
+			font-weight: 600;
+			white-space: nowrap;
+			width: 90px;
+		}
 	`;
 }
