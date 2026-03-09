@@ -186,7 +186,7 @@ export function renderResultPage(success: boolean, message: string): string {
 			<tr><td class="cmd">/weekly</td><td>이번 주 팀 집중 랭킹</td></tr>
 			<tr><td class="cmd">/mystats</td><td>나의 이번 주·누적 집중 통계</td></tr>
 			<tr><td class="cmd">/report</td><td>기간을 지정해서 팀 리포트 조회</td></tr>
-			<tr><td class="cmd">/export</td><td>내 기록을 내보내서 분석에 활용</td></tr>
+			<tr><td class="cmd">/export</td><td>내 기록을 텍스트·그래프·CSV로 내보내기</td></tr>
 			<tr><td class="cmd">/pattern</td><td>나의 시간대·요일별 집중 패턴 분석</td></tr>
 		</table>
 	</div>` : ''}
