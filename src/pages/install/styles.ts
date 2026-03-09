@@ -260,11 +260,13 @@ export function resultPageStyles(color: string): string {
 			min-height: 100vh;
 			background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #0d1f0d 100%);
 			display: flex;
+			flex-direction: column;
 			align-items: center;
 			justify-content: center;
 			font-family: 'Segoe UI', system-ui, sans-serif;
 			color: rgba(255, 255, 255, 0.85);
 			padding: 2rem 1rem;
+			gap: 1.5rem;
 		}
 		.card {
 			background: rgba(255, 255, 255, 0.05);
@@ -319,39 +321,31 @@ export function resultPageStyles(color: string): string {
 			transition: color 0.2s ease;
 		}
 
-		.command-ref {
-			margin-top: 2rem;
-			padding-top: 1.5rem;
-			border-top: 1px solid rgba(255, 255, 255, 0.1);
+		.command-card {
+			text-align: left;
 		}
-		.command-ref h2 {
+		.command-card h2 {
 			font-size: 1rem;
 			color: rgba(255, 255, 255, 0.7);
 			margin-bottom: 1rem;
+			text-align: center;
 		}
-		.command-ref table {
+		.command-card table {
 			width: 100%;
 			border-collapse: collapse;
 		}
-		.command-ref td {
+		.command-card td {
 			padding: 6px 8px;
 			font-size: 0.85rem;
 			color: rgba(255, 255, 255, 0.6);
 			border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 		}
-		.command-ref td.cmd {
+		.command-card td.cmd {
 			font-family: 'SF Mono', 'Consolas', monospace;
 			color: #a78bfa;
 			font-weight: 600;
 			white-space: nowrap;
 			width: 90px;
-		}
-		.command-ref td.cmd-sub {
-			font-family: 'SF Mono', 'Consolas', monospace;
-			font-size: 0.75rem;
-			color: rgba(167, 139, 250, 0.5);
-			padding: 0 8px 6px 8px;
-			border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 		}
 	`;
 }
