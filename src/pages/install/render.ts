@@ -61,8 +61,10 @@ export function renderInstallPage(slackAuthUrl: string): string {
 					<div class="workspace-error" id="urlError">워크스페이스 이름을 입력해주세요</div>
 					<div class="workspace-hint">슬랙 좌측 상단 워크스페이스 이름 클릭 → <code>xxx.slack.com</code>에서 xxx 부분 입력</div>
 					<button class="action-btn" onclick="openEmojiPage()">이모지 등록 페이지 열기 →</button>
-					<div class="workspace-hint">💡 커스텀 이모지가 하나도 없으면 벌크 등록 영역이 안 보여요.<br>이 경우 <strong>이모지 추가</strong> 버튼으로 1개를 먼저 등록하면 드래그 앤 드롭 영역이 나타납니다!</div>
-					<div class="workspace-hint">열린 페이지에서 다운받은 이미지를 드래그 앤 드롭하세요</div>
+					<div class="hidden" id="emojiTips">
+						<div class="workspace-hint">열린 페이지에서 다운받은 이미지를 드래그 앤 드롭하세요</div>
+						<div class="workspace-hint">💡 드래그 앤 드롭 영역이 안 보이나요?<br>→ <strong>이모지 추가</strong> 버튼으로 1개를 먼저 등록하면 나타나요!</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -122,6 +124,7 @@ export function renderInstallPage(slackAuthUrl: string): string {
 			input.classList.remove('error');
 			error.style.display = 'none';
 			window.open('https://' + raw + '.slack.com/customize/emoji', '_blank');
+			reveal('emojiTips');
 			showNextSteps();
 		}
 		document.getElementById('workspaceUrl').addEventListener('keydown', function(e) {
