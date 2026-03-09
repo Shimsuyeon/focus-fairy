@@ -15,7 +15,7 @@ import {
 } from './commands';
 import { reply } from './utils/slack';
 import { handleLanding } from './pages/landing/index';
-import { handleOAuthInstall, handleOAuthCallback } from './oauth';
+import { handleOAuthInstall, handleOAuthCallback } from './pages/install/index';
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
