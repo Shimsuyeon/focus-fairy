@@ -62,7 +62,7 @@ export async function handleReportCommand(env: Env, teamId: string, userId: stri
 			const { startDate, endDate, label } = getDateRange(period);
 			return sendReport(env, teamId, userId, channelId, startDate, endDate, label);
 		}
-		return replyEphemeral('올바른 형식으로 입력해주세요. 예: `/report 01-01 01-07`');
+		return replyEphemeral('올바른 형식으로 입력해주세요. 예: `/report thisweek` 또는 `/report 26-01-01 26-01-07`');
 	}
 
 	if (args.length === 2) {
