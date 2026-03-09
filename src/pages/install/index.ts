@@ -43,6 +43,14 @@ export function handleOAuthInstall(env: Env): Response {
  */
 export async function handleOAuthCallback(request: Request, env: Env): Promise<Response> {
 	const url = new URL(request.url);
+	const preview = url.searchParams.get('preview');
+	if (preview === 'success') {
+		return htmlResponse(renderResultPage(true, '테스트 워크스페이스에\n집중요정이 설치되었어요!'));
+	}
+	if (preview === 'fail') {
+		return htmlResponse(renderResultPage(false, '설치에 실패했어요.'), 400);
+	}
+
 	const code = url.searchParams.get('code');
 	const error = url.searchParams.get('error');
 
