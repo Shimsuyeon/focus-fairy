@@ -3,11 +3,11 @@
  * 외부 워크스페이스에서 집중요정을 설치할 수 있도록 지원
  */
 
-import { WITHOUT_EMOJI_IMG, WITH_EMOJI_IMG } from './pages/install/images';
+import { WITHOUT_EMOJI_IMG, WITH_EMOJI_IMG, FAIRY_CONFETTI_IMG, FAIRY_THUMBNAIL_IMG } from './pages/install/images';
 
 const BOT_SCOPES = ['commands', 'chat:write', 'users:read', 'files:write', 'im:write'].join(',');
 
-const EMOJI_DOWNLOAD_URL = 'https://github.com/Shimsuyeon/focus-fairy/raw/feat/21-onboarding-guide/assets/emojis/focus-fairy-emojis.zip';
+const EMOJI_DOWNLOAD_URL = 'https://github.com/Shimsuyeon/focus-fairy/raw/main/assets/emojis/focus-fairy-emojis.zip';
 const EMOJI_EXTENSION_URL = 'https://chromewebstore.google.com/detail/neutral-face-emoji-tools/anchoacphlfbdomdlomnbbfhcmcdmjej';
 
 /**
@@ -50,7 +50,8 @@ export function handleOAuthInstall(env: Env): Response {
 			text-align: center;
 			margin-bottom: 2rem;
 		}
-		.header-emoji { font-size: 3rem; margin-bottom: 0.5rem; }
+		.header-emoji { margin-bottom: 0.5rem; }
+		.header-emoji img { width: 80px; height: 80px; }
 		.header h1 { font-size: 1.8rem; margin-bottom: 0.3rem; }
 		.header p { color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; }
 
@@ -195,6 +196,16 @@ export function handleOAuthInstall(env: Env): Response {
 			color: #a78bfa;
 		}
 		.action-btn:hover { background: rgba(167, 139, 250, 0.35); }
+		.action-btn.confirm {
+			margin-top: 0.5rem;
+			background: transparent;
+			border: 1px dashed rgba(167, 139, 250, 0.4);
+			color: rgba(167, 139, 250, 0.7);
+		}
+		.action-btn.confirm:hover {
+			background: rgba(167, 139, 250, 0.15);
+			color: #a78bfa;
+		}
 
 		.workspace-input {
 			width: 100%;
@@ -274,9 +285,9 @@ export function handleOAuthInstall(env: Env): Response {
 <body>
 	<div class="container">
 		<div class="header">
-			<div class="header-emoji">🧚‍♀️</div>
+			<div class="header-emoji"><img src="${FAIRY_THUMBNAIL_IMG}" alt="집중요정"></div>
 			<h1>집중요정 설치 가이드</h1>
-			<p>3단계로 집중요정을 시작하세요</p>
+			<p>2단계로 집중요정을 시작하세요</p>
 		</div>
 
 		<div class="step" id="step1">
@@ -309,13 +320,15 @@ export function handleOAuthInstall(env: Env): Response {
 
 				<div class="sub-step hidden" id="substep2">
 					<div class="sub-step-label">1-2. 벌크 등록 도구 설치</div>
-					<a href="${EMOJI_EXTENSION_URL}" target="_blank" rel="noopener" class="action-btn" onclick="completeSubStep(2)">⚡ Neutral Face Emoji Tools 설치</a>
+					<a href="${EMOJI_EXTENSION_URL}" target="_blank" rel="noopener" class="action-btn">⚡ Neutral Face Emoji Tools 설치</a>
+					<button class="action-btn confirm" onclick="completeSubStep(2)">설치 완료했어요 →</button>
 				</div>
 
 				<div class="sub-step hidden" id="substep3">
 					<div class="sub-step-label">1-3. 이모지 등록 페이지 열기</div>
-					<input type="text" class="workspace-input" id="workspaceUrl" placeholder="https://myteam.slack.com" />
-					<div class="workspace-error" id="urlError">올바른 슬랙 워크스페이스 URL을 입력해주세요</div>
+					<input type="text" class="workspace-input" id="workspaceUrl" placeholder="myteam" />
+					<div class="workspace-error" id="urlError">워크스페이스 이름을 입력해주세요</div>
+					<div class="workspace-hint">슬랙 좌측 상단 워크스페이스 이름 클릭 → <code>xxx.slack.com</code>에서 xxx 부분 입력</div>
 					<button class="action-btn" onclick="openEmojiPage()">이모지 등록 페이지 열기 →</button>
 					<div class="workspace-hint">열린 페이지에서 다운받은 이미지를 드래그 앤 드롭하세요</div>
 				</div>
@@ -330,17 +343,6 @@ export function handleOAuthInstall(env: Env): Response {
 			<div class="step-body">
 				<a href="${slackAuthUrl}" class="btn">Add to Slack</a>
 				<div class="scopes">요청 권한: 슬래시 커맨드, 메시지 전송, 사용자 조회, 파일 전송</div>
-			</div>
-		</div>
-
-		<div class="step hidden" id="step3">
-			<div class="step-header">
-				<div class="step-number">3</div>
-				<span class="step-title">채널에 봇 초대</span>
-			</div>
-			<div class="step-body">
-				사용할 채널에서 집중요정을 초대하세요<br>
-				채널 입력창에 <code>/invite @집중요정</code> 입력
 			</div>
 		</div>
 
@@ -359,7 +361,6 @@ export function handleOAuthInstall(env: Env): Response {
 		}
 		function showNextSteps() {
 			reveal('step2');
-			setTimeout(function() { reveal('step3'); }, 150);
 		}
 		function startEmojiSetup() {
 			document.getElementById('emojiChoice').style.display = 'none';
@@ -380,15 +381,15 @@ export function handleOAuthInstall(env: Env): Response {
 		function openEmojiPage() {
 			var input = document.getElementById('workspaceUrl');
 			var error = document.getElementById('urlError');
-			var raw = input.value.trim().replace(/\\/+$/, '');
-			if (!raw.match(/^https?:\\/\\/[a-z0-9-]+\\.slack\\.com$/i)) {
+			var raw = input.value.trim().replace(/\\/+$/, '').replace(/^https?:\\/\\//i, '').replace(/\\.slack\\.com$/i, '');
+			if (!raw || !raw.match(/^[a-z0-9][a-z0-9-]*$/i)) {
 				input.classList.add('error');
 				error.style.display = 'block';
 				return;
 			}
 			input.classList.remove('error');
 			error.style.display = 'none';
-			window.open(raw + '/customize/emoji', '_blank');
+			window.open('https://' + raw + '.slack.com/customize/emoji', '_blank');
 			showNextSteps();
 		}
 		document.getElementById('workspaceUrl').addEventListener('keydown', function(e) {
@@ -440,7 +441,7 @@ export async function handleOAuthCallback(request: Request, env: Env): Promise<R
 		await env.STUDY_KV.put(`tokens:${data.team.id}`, data.access_token);
 
 		const teamName = data.team.name || data.team.id;
-		return renderResult(true, `${teamName} 워크스페이스에 집중요정이 설치되었어요!`);
+		return renderResult(true, `${teamName} 워크스페이스에\n집중요정이 설치되었어요!`);
 	} catch (err) {
 		console.error('OAuth callback error:', err);
 		return renderResult(false, '서버 오류가 발생했어요.');
@@ -459,27 +460,34 @@ interface OAuthResponse {
 }
 
 function renderResult(success: boolean, message: string): Response {
-	const emoji = success ? '🎉' : '😢';
+	const emojiHtml = success
+		? `<img src="${FAIRY_CONFETTI_IMG}" alt="confetti" style="width: 64px; height: 64px;">`
+		: '😢';
 	const color = success ? '#34D399' : '#F87171';
 
 	const nextSteps = success
 		? `<div class="next-steps">
-				<h2>다음 단계</h2>
-				<div class="next-step">
-					<span class="next-icon">💬</span>
-					<div>
-						<strong>채널에 봇 초대</strong>
-						<p>사용할 채널에서 <code>/invite @집중요정</code> 입력</p>
-					</div>
+				<p class="next-alert">⚠️ 사용하려는 채널에 봇을 초대해야 정상 동작해요!</p>
+				<p class="next-desc">아래 명령어를 해당 채널에 입력해주세요</p>
+				<div class="copy-block" onclick="copyCommand(this, '/invite @집중요정')">
+					<span class="copy-text">/invite @집중요정</span>
+					<span class="copy-btn">복사</span>
 				</div>
-				<div class="next-step">
-					<span class="next-icon">🚀</span>
-					<div>
-						<strong>집중 시작!</strong>
-						<p><code>/start</code> 명령어로 첫 집중을 시작해보세요</p>
-					</div>
+				<p class="next-desc" style="margin-top: 1.5rem;">초대 후 첫 집중을 시작해보세요</p>
+				<div class="copy-block" onclick="copyCommand(this, '/start')">
+					<span class="copy-text">/start</span>
+					<span class="copy-btn">복사</span>
 				</div>
-			</div>`
+			</div>
+			<script>
+				function copyCommand(el, text) {
+					navigator.clipboard.writeText(text);
+					var btn = el.querySelector('.copy-btn');
+					btn.textContent = '복사됨!';
+					btn.style.color = '#34D399';
+					setTimeout(function() { btn.textContent = '복사'; btn.style.color = ''; }, 1500);
+				}
+			</script>`
 		: `<p class="retry">다시 시도해주세요.</p>`;
 
 	const html = `<!DOCTYPE html>
@@ -509,43 +517,54 @@ function renderResult(success: boolean, message: string): Response {
 			text-align: center;
 		}
 		.emoji { font-size: 3rem; margin-bottom: 1rem; }
-		h1 { font-size: 1.5rem; margin-bottom: 1.5rem; color: ${color}; }
+		h1 { font-size: 1.5rem; margin-bottom: 1.5rem; color: ${color}; white-space: pre-line; }
 		.retry { color: rgba(255, 255, 255, 0.6); line-height: 1.6; }
 
 		.next-steps {
-			text-align: left;
+			text-align: center;
 			margin-top: 0.5rem;
 		}
-		.next-steps h2 {
+		.next-alert {
+			font-size: 0.9rem;
+			color: #FBBF24;
+			font-weight: 600;
+			margin-bottom: 0.7rem;
+		}
+		.next-desc {
 			font-size: 0.85rem;
-			color: rgba(255, 255, 255, 0.4);
-			text-transform: uppercase;
-			letter-spacing: 0.5px;
-			margin-bottom: 1rem;
-			text-align: center;
+			color: rgba(255, 255, 255, 0.5);
+			margin-bottom: 0.7rem;
 		}
-		.next-step {
+		.copy-block {
 			display: flex;
-			align-items: flex-start;
-			gap: 0.8rem;
-			padding: 0.8rem 0;
-			border-top: 1px solid rgba(255, 255, 255, 0.06);
+			align-items: center;
+			justify-content: space-between;
+			background: rgba(255, 255, 255, 0.08);
+			border: 1px solid rgba(167, 139, 250, 0.3);
+			border-radius: 8px;
+			padding: 12px 16px;
+			cursor: pointer;
+			transition: all 0.2s ease;
 		}
-		.next-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
-		.next-step strong { font-size: 0.9rem; display: block; margin-bottom: 2px; }
-		.next-step p { color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; line-height: 1.4; }
-		code {
-			background: rgba(255, 255, 255, 0.1);
-			padding: 2px 6px;
-			border-radius: 4px;
-			font-size: 0.85em;
+		.copy-block:hover {
+			background: rgba(167, 139, 250, 0.1);
+		}
+		.copy-text {
+			font-family: 'SF Mono', 'Consolas', monospace;
+			font-size: 0.95rem;
 			color: #a78bfa;
+			font-weight: 600;
+		}
+		.copy-btn {
+			font-size: 0.75rem;
+			color: rgba(255, 255, 255, 0.4);
+			transition: color 0.2s ease;
 		}
 	</style>
 </head>
 <body>
 	<div class="card">
-		<div class="emoji">${emoji}</div>
+		<div class="emoji">${emojiHtml}</div>
 		<h1>${message}</h1>
 		${nextSteps}
 	</div>
