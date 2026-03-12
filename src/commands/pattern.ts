@@ -17,13 +17,43 @@ const TIME_SLOTS = {
 
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
+/** YY-MM 형식인지 확인 */
+function parseMonth(arg: string): { year: number; month: number } | null {
+	const match = arg.match(/^(\d{2})-(\d{2})$/);
+	if (!match) return null;
+	const year = 2000 + parseInt(match[1]);
+	const month = parseInt(match[2]);
+	if (month < 1 || month > 12) return null;
+	return { year, month };
+}
+
 /** /pattern 핸들러 */
 export async function handlePattern(env: Env, teamId: string, userId: string, text: string): Promise<Response> {
 	const args = text.split(' ').filter((a) => a.trim());
-	const subCommand = args[0]?.toLowerCase() || '';
 
-	// 최근 30일 세션 수집
-	const sessions = await collectRecentSessions(env, teamId, userId, 30);
+	let subCommand = '';
+	let monthInfo: { year: number; month: number } | null = null;
+
+	for (const arg of args) {
+		const lower = arg.toLowerCase();
+		if (lower === 'time' || lower === 'day') {
+			subCommand = lower;
+		} else {
+			const parsed = parseMonth(arg);
+			if (parsed) monthInfo = parsed;
+		}
+	}
+
+	let sessions: Session[];
+	let label: string;
+
+	if (monthInfo) {
+		sessions = await collectMonthSessions(env, teamId, userId, monthInfo.year, monthInfo.month);
+		label = `${monthInfo.year}년 ${monthInfo.month}월`;
+	} else {
+		sessions = await collectRecentSessions(env, teamId, userId, 30);
+		label = '최근 30일';
+	}
 
 	if (sessions.length === 0) {
 		return replyEphemeral(':fairy-chart: 아직 분석할 데이터가 없어요!\n\n`/start`로 집중을 시작해보세요 :fairy-wand:');
@@ -31,11 +61,11 @@ export async function handlePattern(env: Env, teamId: string, userId: string, te
 
 	switch (subCommand) {
 		case 'time':
-			return analyzeTimeSlots(sessions);
+			return analyzeTimeSlots(sessions, label);
 		case 'day':
-			return analyzeDays(sessions);
+			return analyzeDays(sessions, label);
 		default:
-			return analyzeOverall(sessions);
+			return analyzeOverall(sessions, label);
 	}
 }
 
@@ -64,8 +94,28 @@ async function collectRecentSessions(env: Env, teamId: string, userId: string, d
 	return sessions;
 }
 
+/** 특정 월 세션 수집 */
+async function collectMonthSessions(env: Env, teamId: string, userId: string, year: number, month: number): Promise<Session[]> {
+	const daysInMonth = new Date(year, month, 0).getDate();
+	const dateKeys: string[] = [];
+	for (let day = 1; day <= daysInMonth; day++) {
+		const d = new Date(year, month - 1, day);
+		dateKeys.push(d.toISOString().split('T')[0]);
+	}
+
+	const results = await Promise.all(dateKeys.map((key) => env.STUDY_KV.get(`${teamId}:sessions:${key}`)));
+
+	const sessions: Session[] = [];
+	for (const result of results) {
+		const daySessions: Session[] = JSON.parse(result || '[]');
+		sessions.push(...daySessions.filter((s) => s.userId === userId));
+	}
+
+	return sessions;
+}
+
 /** 전체 패턴 분석 */
-function analyzeOverall(sessions: Session[]): Response {
+function analyzeOverall(sessions: Session[], label: string): Response {
 	// 시간대별 집계
 	const timeSlotStats = getTimeSlotStats(sessions);
 	const topTimeSlot = Object.entries(timeSlotStats).sort((a, b) => b[1] - a[1])[0];
@@ -81,14 +131,14 @@ function analyzeOverall(sessions: Session[]): Response {
 	// 최장 세션
 	const longestSession = Math.max(...sessions.map((s) => s.duration));
 
-	// 주간 평균 (최근 4주 기준)
+	// 주간 평균 (약 4주 기준)
 	const weeklyAvg = totalDuration / 4;
 
 	const timeSlotInfo = TIME_SLOTS[topTimeSlot[0] as keyof typeof TIME_SLOTS];
 	const timeSlotPercent = Math.round((topTimeSlot[1] / totalDuration) * 100);
 
 	const message =
-		`:fairy-chart: *나의 집중 패턴* (최근 30일)\n\n` +
+		`:fairy-chart: *나의 집중 패턴* (${label})\n\n` +
 		`:fairy-sun: 가장 집중 잘 되는 시간: *${timeSlotInfo.label}* (${timeSlotInfo.range}) - ${timeSlotPercent}%\n` +
 		`:fairy-confetti: 가장 많이 집중한 요일: *${DAY_NAMES[parseInt(topDay[0])]}요일* - ${formatDuration(topDay[1])}\n` +
 		`:fairy-hourglass: 평균 세션 길이: *${formatDuration(avgSessionLength)}*\n` +
@@ -96,13 +146,14 @@ function analyzeOverall(sessions: Session[]): Response {
 		`:fairy-sprout: 주간 평균: *${formatDuration(weeklyAvg)}*\n\n` +
 		`_더 자세히 보려면:_\n` +
 		`• \`/pattern time\` - 시간대별 분석\n` +
-		`• \`/pattern day\` - 요일별 분석`;
+		`• \`/pattern day\` - 요일별 분석\n` +
+		`• 월별 조회: \`/pattern 26-02\``;
 
 	return replyEphemeral(message);
 }
 
 /** 시간대별 분석 (가로 막대 그래프) */
-function analyzeTimeSlots(sessions: Session[]): Response {
+function analyzeTimeSlots(sessions: Session[], label: string): Response {
 	const stats = getTimeSlotStats(sessions);
 	const total = Object.values(stats).reduce((sum, v) => sum + v, 0);
 
@@ -132,7 +183,7 @@ function analyzeTimeSlots(sessions: Session[]): Response {
 				xAxes: [{ ticks: { beginAtZero: true } }],
 			},
 			plugins: {
-				title: { display: true, text: '시간대별 집중 패턴 (최근 30일)' },
+				title: { display: true, text: `시간대별 집중 패턴 (${label})` },
 			},
 		},
 	};
@@ -149,7 +200,7 @@ function analyzeTimeSlots(sessions: Session[]): Response {
 	const blocks = [
 		{
 			type: 'section',
-			text: { type: 'mrkdwn', text: `:fairy-chart: *시간대별 집중 패턴* (최근 30일)` },
+			text: { type: 'mrkdwn', text: `:fairy-chart: *시간대별 집중 패턴* (${label})` },
 		},
 		{
 			type: 'image',
@@ -168,7 +219,7 @@ function analyzeTimeSlots(sessions: Session[]): Response {
 }
 
 /** 요일별 분석 (가로 막대 그래프) */
-function analyzeDays(sessions: Session[]): Response {
+function analyzeDays(sessions: Session[], label: string): Response {
 	const stats = getDayStats(sessions);
 	const total = Object.values(stats).reduce((sum, v) => sum + v, 0);
 
@@ -201,7 +252,7 @@ function analyzeDays(sessions: Session[]): Response {
 				xAxes: [{ ticks: { beginAtZero: true } }],
 			},
 			plugins: {
-				title: { display: true, text: '요일별 집중 패턴 (최근 30일)' },
+				title: { display: true, text: `요일별 집중 패턴 (${label})` },
 			},
 		},
 	};
@@ -218,7 +269,7 @@ function analyzeDays(sessions: Session[]): Response {
 	const blocks = [
 		{
 			type: 'section',
-			text: { type: 'mrkdwn', text: `:fairy-chart: *요일별 집중 패턴* (최근 30일)` },
+			text: { type: 'mrkdwn', text: `:fairy-chart: *요일별 집중 패턴* (${label})` },
 		},
 		{
 			type: 'image',
