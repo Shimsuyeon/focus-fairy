@@ -23,7 +23,21 @@ export async function handleEnd(
 	}
 
 	const now = Date.now();
-	const startTime = parseInt(checkIn);
+
+	let startTime: number;
+	let label: string | undefined;
+	try {
+		const parsed = JSON.parse(checkIn);
+		if (typeof parsed === 'object' && parsed.time) {
+			startTime = parsed.time;
+			label = parsed.label;
+		} else {
+			startTime = parseInt(checkIn);
+		}
+	} catch {
+		startTime = parseInt(checkIn);
+	}
+
 	let duration = now - startTime;
 
 	// 6시간 초과 + 시간 입력 없으면 경고 (본인에게만)
@@ -48,12 +62,9 @@ export async function handleEnd(
 	const sessionDate = getDateKey(startTime);
 	const sessionsKey = `${teamId}:sessions:${sessionDate}`;
 	const sessions: Session[] = JSON.parse((await env.STUDY_KV.get(sessionsKey)) || '[]');
-	sessions.push({
-		userId,
-		start: startTime,
-		end: now,
-		duration,
-	});
+	const session: Session = { userId, start: startTime, end: now, duration };
+	if (label) session.label = label;
+	sessions.push(session);
 	await env.STUDY_KV.put(sessionsKey, JSON.stringify(sessions));
 
 	// 전체 누적도 유지
@@ -74,11 +85,14 @@ export async function handleEnd(
 
 	const randomMsg = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
 
-	const publicMessage =
+	let publicMessage =
 		`:fairy-party: <@${userId}>님 수고했어요! (${formatTime(now)})\n` +
 		`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}\n` +
-		`:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}\n\n` +
-		`${randomMsg}`;
+		`:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}`;
+	if (label) {
+		publicMessage += `\n:fairy-sprout: 할 일: ${label}`;
+	}
+	publicMessage += `\n\n${randomMsg}`;
 
 	// 채널에 공개 메시지 전송 시도
 	const posted = await postMessage(env, teamId, channelId, publicMessage);

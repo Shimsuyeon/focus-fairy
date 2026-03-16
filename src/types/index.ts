@@ -8,6 +8,7 @@ export interface Session {
 	start: number;
 	end: number;
 	duration: number;
+	label?: string;
 }
 
 /** 날짜 범위 (리포트용) */

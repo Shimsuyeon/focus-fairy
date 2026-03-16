@@ -164,7 +164,9 @@ function generateTextExport(sessions: Array<Session & { date: string }>, label: 
 			const startTime = formatTimeShort(session.start);
 			const endTime = formatTimeShort(session.end);
 			const duration = formatDuration(session.duration);
-			lines.push(`${dateLabel} ${startTime}~${endTime} (${duration})`);
+			let line = `${dateLabel} ${startTime}~${endTime} (${duration})`;
+			if (session.label) line += ` — ${session.label}`;
+			lines.push(line);
 		}
 	}
 
@@ -290,18 +292,17 @@ async function generateCsvExport(
 ): Promise<Response> {
 	const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-	// CSV 헤더
-	const header = '날짜,요일,시작,종료,소요시간(분)';
+	const header = '날짜,요일,시작,종료,소요시간(분),할일';
 
-	// CSV 행 생성
 	const rows = sessions.map((session) => {
 		const d = new Date(session.date + 'T00:00:00Z');
 		const dayName = dayNames[d.getUTCDay()];
 		const startTime = formatTimeShort(session.start);
 		const endTime = formatTimeShort(session.end);
 		const durationMinutes = Math.round(session.duration / 60000);
+		const labelField = session.label ? `"${session.label.replace(/"/g, '""')}"` : '';
 
-		return `${session.date},${dayName},${startTime},${endTime},${durationMinutes}`;
+		return `${session.date},${dayName},${startTime},${endTime},${durationMinutes},${labelField}`;
 	});
 
 	const csvContent = [header, ...rows].join('\n');

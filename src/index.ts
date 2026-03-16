@@ -52,7 +52,7 @@ export default {
 		// 커맨드 라우팅
 		switch (command) {
 			case '/start':
-				return handleStart(env, teamId, userId, channelId);
+				return handleStart(env, teamId, userId, channelId, text);
 			case '/end':
 				return handleEnd(env, teamId, userId, channelId, text);
 			case '/weekly':

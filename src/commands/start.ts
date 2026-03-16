@@ -6,18 +6,24 @@ import { reply, replyEphemeral, postMessage, getUserName } from '../utils/slack'
 import { formatTime, formatDuration } from '../utils/format';
 import { getTodayKey } from '../utils/date';
 
-export async function handleStart(env: Env, teamId: string, userId: string, channelId: string): Promise<Response> {
+export async function handleStart(env: Env, teamId: string, userId: string, channelId: string, text: string): Promise<Response> {
 	const now = Date.now();
 	const existing = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
 
 	if (existing) {
-		const startTime = parseInt(existing);
+		let startTime: number;
+		try {
+			const parsed = JSON.parse(existing);
+			startTime = typeof parsed === 'object' && parsed.time ? parsed.time : parseInt(existing);
+		} catch {
+			startTime = parseInt(existing);
+		}
 		const elapsed = formatDuration(now - startTime);
-		// 이미 집중 중이면 본인에게만 알림
 		return replyEphemeral(`이미 집중 중이에요! 요정이 지켜보고 있어요 :fairy-hourglass: (${elapsed} 경과)`);
 	}
 
-	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, now.toString());
+	const checkinData = text ? JSON.stringify({ time: now, label: text }) : now.toString();
+	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
 
 	const todayKey = getTodayKey();
 	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');
@@ -26,19 +32,18 @@ export async function handleStart(env: Env, teamId: string, userId: string, chan
 		await env.STUDY_KV.put(`${teamId}:today:${todayKey}`, JSON.stringify(todayList));
 	}
 
-	// 사용자 이름 조회
 	const userName = await getUserName(env, teamId, userId);
 
-	const publicMessage = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now)})`;
+	let publicMessage = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now)})`;
+	if (text) {
+		publicMessage += `\n:fairy-sprout: 할 일: ${text}`;
+	}
 
-	// 채널에 공개 메시지 전송 시도
 	const posted = await postMessage(env, teamId, channelId, publicMessage);
 
 	if (posted) {
-		// postMessage 성공: 본인에게만 짧은 확인 메시지
 		return replyEphemeral(':fairy-wand: 집중 시작!');
 	} else {
-		// postMessage 실패: 기존 방식으로 fallback (in_channel)
 		return reply(publicMessage);
 	}
 }

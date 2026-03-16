@@ -16,12 +16,25 @@ export async function handleToday(env: Env, teamId: string): Promise<Response> {
 	const statuses = await Promise.all(
 		todayList.map(async (uid) => {
 			const [checkIn, userName] = await Promise.all([env.STUDY_KV.get(`${teamId}:checkin:${uid}`), getUserName(env, teamId, uid)]);
+			let label: string | undefined;
+			if (checkIn) {
+				try {
+					const parsed = JSON.parse(checkIn);
+					if (typeof parsed === 'object' && parsed.label) {
+						label = parsed.label;
+					}
+				} catch {}
+			}
 			const status = checkIn ? ':fairy-fire:' : ':fairy-party:';
-			return { status, userName, isStudying: !!checkIn };
+			return { status, userName, isStudying: !!checkIn, label };
 		})
 	);
 
-	const lines = statuses.map((s) => `${s.status} ${s.userName}`);
+	const lines = statuses.map((s) => {
+		let line = `${s.status} ${s.userName}`;
+		if (s.label) line += ` — ${s.label}`;
+		return line;
+	});
 	const studying = statuses.filter((s) => s.isStudying).length;
 
 	return replyEphemeral(
