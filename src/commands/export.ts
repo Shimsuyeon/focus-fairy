@@ -292,7 +292,7 @@ async function generateCsvExport(
 ): Promise<Response> {
 	const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-	const header = '날짜,요일,시작,종료,소요시간(분),할일';
+	const header = '날짜,요일,시작,종료,소요시간(분),계획';
 
 	const rows = sessions.map((session) => {
 		const d = new Date(session.date + 'T00:00:00Z');

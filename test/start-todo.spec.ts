@@ -16,7 +16,7 @@ async function getJson(res: Response) {
 	return (await res.json()) as { response_type: string; text: string };
 }
 
-describe('/start 할 일 라벨링', () => {
+describe('/start 계획 라벨링', () => {
 	beforeEach(async () => {
 		await env.STUDY_KV.delete('T_TEST:checkin:U_TEST');
 		await env.STUDY_KV.delete('T_TEST:today:' + new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0]);
@@ -27,19 +27,19 @@ describe('/start 할 일 라벨링', () => {
 		const json = await getJson(res);
 
 		expect(json.text).toContain('집중을 시작했어요');
-		expect(json.text).not.toContain('할 일');
+		expect(json.text).not.toContain('계획');
 
 		const stored = await env.STUDY_KV.get('T_TEST:checkin:U_TEST');
 		expect(stored).toBeTruthy();
 		expect(Number(stored)).toBeGreaterThan(0);
 	});
 
-	it('텍스트와 함께 /start → JSON 형식으로 저장 + 메시지에 할 일 표시', async () => {
+	it('텍스트와 함께 /start → JSON 형식으로 저장 + 메시지에 계획 표시', async () => {
 		const res = await slackCommand('/start', '기획서 작성, 코드리뷰');
 		const json = await getJson(res);
 
 		expect(json.text).toContain('집중을 시작했어요');
-		expect(json.text).toContain('할 일: 기획서 작성, 코드리뷰');
+		expect(json.text).toContain('계획: 기획서 작성, 코드리뷰');
 
 		const stored = await env.STUDY_KV.get('T_TEST:checkin:U_TEST');
 		const parsed = JSON.parse(stored!);
@@ -73,7 +73,7 @@ describe('/start 할 일 라벨링', () => {
 });
 
 describe('/end 라벨 포함 종료', () => {
-	it('라벨이 있는 세션 종료 → 메시지에 할 일 표시 + 세션에 라벨 저장', async () => {
+	it('라벨이 있는 세션 종료 → 메시지에 계획 표시 + 세션에 라벨 저장', async () => {
 		const startTime = Date.now() - 45 * 60 * 1000; // 45분 전
 		await env.STUDY_KV.put('T_TEST:checkin:U_TEST', JSON.stringify({ time: startTime, label: '기획서 작성' }));
 
@@ -81,7 +81,7 @@ describe('/end 라벨 포함 종료', () => {
 		const json = await getJson(res);
 
 		expect(json.text).toContain('수고했어요');
-		expect(json.text).toContain('할 일: 기획서 작성');
+		expect(json.text).toContain('계획: 기획서 작성');
 
 		// 체크인 삭제 확인
 		const checkIn = await env.STUDY_KV.get('T_TEST:checkin:U_TEST');
@@ -103,7 +103,7 @@ describe('/end 라벨 포함 종료', () => {
 		const json = await getJson(res);
 
 		expect(json.text).toContain('수고했어요');
-		expect(json.text).not.toContain('할 일');
+		expect(json.text).not.toContain('계획');
 
 		const dateKey = new Date(startTime + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
 		const sessions: Session[] = JSON.parse((await env.STUDY_KV.get(`T_TEST:sessions:${dateKey}`))!);
@@ -117,25 +117,25 @@ describe('/start → /end 전체 플로우', () => {
 		await env.STUDY_KV.delete('T_TEST:checkin:U_TEST');
 	});
 
-	it('할 일 입력 후 종료까지 라벨이 유지됨', async () => {
-		// 1. 할 일과 함께 시작
+	it('계획 입력 후 종료까지 라벨이 유지됨', async () => {
+		// 1. 계획과 함께 시작
 		const startRes = await slackCommand('/start', 'PR 리뷰, 버그 수정');
 		const startJson = await getJson(startRes);
-		expect(startJson.text).toContain('할 일: PR 리뷰, 버그 수정');
+		expect(startJson.text).toContain('계획: PR 리뷰, 버그 수정');
 
 		// 2. 종료
 		const endRes = await slackCommand('/end');
 		const endJson = await getJson(endRes);
-		expect(endJson.text).toContain('할 일: PR 리뷰, 버그 수정');
+		expect(endJson.text).toContain('계획: PR 리뷰, 버그 수정');
 	});
 
-	it('할 일 없이 시작 → 종료 시에도 할 일 미표시', async () => {
+	it('계획 없이 시작 → 종료 시에도 계획 미표시', async () => {
 		const startRes = await slackCommand('/start');
 		const startJson = await getJson(startRes);
-		expect(startJson.text).not.toContain('할 일');
+		expect(startJson.text).not.toContain('계획');
 
 		const endRes = await slackCommand('/end');
 		const endJson = await getJson(endRes);
-		expect(endJson.text).not.toContain('할 일');
+		expect(endJson.text).not.toContain('계획');
 	});
 });

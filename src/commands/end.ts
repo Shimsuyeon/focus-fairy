@@ -90,7 +90,7 @@ export async function handleEnd(
 		`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}\n` +
 		`:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}`;
 	if (label) {
-		publicMessage += `\n:fairy-sprout: 할 일: ${label}`;
+		publicMessage += `\n:fairy-sprout: 계획: ${label}`;
 	}
 	publicMessage += `\n\n${randomMsg}`;
 

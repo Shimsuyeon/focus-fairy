@@ -36,7 +36,7 @@ export async function handleStart(env: Env, teamId: string, userId: string, chan
 
 	let publicMessage = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now)})`;
 	if (text) {
-		publicMessage += `\n:fairy-sprout: 할 일: ${text}`;
+		publicMessage += `\n:fairy-sprout: 계획: ${text}`;
 	}
 
 	const posted = await postMessage(env, teamId, channelId, publicMessage);
