@@ -186,7 +186,7 @@ const TAG_COLORS: Record<string, { bg: string; border: string }> = {
 	reading: { bg: 'rgba(122, 175, 255, 0.7)', border: 'rgba(122, 175, 255, 1)' },
 	side: { bg: 'rgba(197, 138, 249, 0.7)', border: 'rgba(197, 138, 249, 1)' },
 	study: { bg: 'rgba(255, 214, 102, 0.7)', border: 'rgba(255, 214, 102, 1)' },
-	etc: { bg: 'rgba(176, 190, 197, 0.7)', border: 'rgba(176, 190, 197, 1)' },
+	etc: { bg: 'rgba(255, 179, 167, 0.7)', border: 'rgba(255, 179, 167, 1)' },
 };
 
 /** 그래프 형식 출력 (QuickChart.io, 카테고리별 색상) */
