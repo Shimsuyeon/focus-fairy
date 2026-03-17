@@ -38,3 +38,6 @@ export const SESSION_TAGS = [
 
 export const DEFAULT_TAG = 'etc';
 
+/** 하루 응원 보내기 한도 */
+export const DAILY_CHEER_LIMIT = 5;
+

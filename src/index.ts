@@ -12,6 +12,7 @@ import {
 	handleReportCommand,
 	handleExport,
 	handlePattern,
+	handleCheer,
 } from './commands';
 import { reply } from './utils/slack';
 import { handleLanding } from './pages/landing/index';
@@ -71,6 +72,8 @@ export default {
 				return handleExport(env, teamId, userId, channelId, text);
 			case '/pattern':
 				return handlePattern(env, teamId, userId, text);
+			case '/cheer':
+				return handleCheer(env, teamId, userId, channelId, text);
 			default:
 				return reply('알 수 없는 명령어예요.');
 		}

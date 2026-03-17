@@ -9,3 +9,4 @@ export { handleToday } from './today';
 export { handleWeekly, handleReportCommand } from './report';
 export { handleExport } from './export';
 export { handlePattern } from './pattern';
+export { handleCheer } from './cheer';
