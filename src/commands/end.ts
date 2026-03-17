@@ -26,11 +26,13 @@ export async function handleEnd(
 
 	let startTime: number;
 	let label: string | undefined;
+	let checked: boolean[] | undefined;
 	try {
 		const parsed = JSON.parse(checkIn);
 		if (typeof parsed === 'object' && parsed.time) {
 			startTime = parsed.time;
 			label = parsed.label;
+			checked = parsed.checked;
 		} else {
 			startTime = parseInt(checkIn);
 		}
@@ -64,6 +66,7 @@ export async function handleEnd(
 	const sessions: Session[] = JSON.parse((await env.STUDY_KV.get(sessionsKey)) || '[]');
 	const session: Session = { userId, start: startTime, end: now, duration };
 	if (label) session.label = label;
+	if (checked) session.checked = checked;
 	sessions.push(session);
 	await env.STUDY_KV.put(sessionsKey, JSON.stringify(sessions));
 
@@ -89,7 +92,14 @@ export async function handleEnd(
 		`:fairy-party: <@${userId}>님 수고했어요! (${formatTime(now)})\n` +
 		`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}\n` +
 		`:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}`;
-	if (label) {
+	if (label && checked) {
+		const items = label.split('\n').filter((l: string) => l.trim());
+		const doneCount = checked.filter(Boolean).length;
+		const checklistDisplay = items
+			.map((item: string, i: number) => checked[i] ? `  :fairy-party: ~${item.trim()}~` : `  ${item.trim()}`)
+			.join('\n');
+		publicMessage += `\n:fairy-sprout: 계획 (${doneCount}/${items.length} 완료)\n${checklistDisplay}`;
+	} else if (label) {
 		publicMessage += `\n:fairy-sprout: 계획: ${label}`;
 	}
 	publicMessage += `\n\n${randomMsg}`;

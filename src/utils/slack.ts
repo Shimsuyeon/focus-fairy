@@ -107,19 +107,23 @@ export async function updateMessage(
 	teamId: string,
 	channel: string,
 	ts: string,
-	text: string
+	text: string,
+	blocks?: unknown[]
 ): Promise<boolean> {
 	const token = await getBotToken(env, teamId);
 	if (!token) return false;
 
 	try {
+		const body: Record<string, unknown> = { channel, ts, text };
+		if (blocks) body.blocks = blocks;
+
 		const response = await fetch('https://slack.com/api/chat.update', {
 			method: 'POST',
 			headers: {
 				Authorization: `Bearer ${token}`,
 				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify({ channel, ts, text }),
+			body: JSON.stringify(body),
 		});
 
 		const data = (await response.json()) as { ok: boolean; error?: string };

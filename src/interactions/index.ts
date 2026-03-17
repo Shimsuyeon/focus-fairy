@@ -7,13 +7,21 @@ import { postMessage, updateMessage, getBotToken } from '../utils/slack';
 import { formatTime } from '../utils/format';
 import { getTodayKey } from '../utils/date';
 
+interface SlackBlock {
+	type: string;
+	block_id?: string;
+	text?: { type: string; text: string };
+	accessory?: { type: string; text?: { type: string; text: string }; action_id?: string; value?: string; style?: string };
+	elements?: Array<{ type: string; text?: { type: string; text: string }; action_id?: string; value?: string }>;
+}
+
 interface SlackInteractionPayload {
 	type: string;
 	trigger_id?: string;
 	user: { id: string; team_id: string };
 	channel?: { id: string };
-	message?: { ts: string; text: string };
-	actions?: Array<{ action_id: string }>;
+	message?: { ts: string; text: string; blocks?: SlackBlock[] };
+	actions?: Array<{ action_id: string; value?: string; block_id?: string }>;
 	view?: {
 		callback_id: string;
 		private_metadata: string;
@@ -64,6 +72,10 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env): P
 
 	if (actionId === 'add_plan_button') {
 		return handleAddPlanButton(payload, env);
+	}
+
+	if (actionId?.startsWith('toggle_check_')) {
+		return handleToggleCheck(payload, env);
 	}
 
 	return new Response('', { status: 200 });
@@ -169,7 +181,7 @@ async function handleStartPlanSubmission(
 	return new Response('', { status: 200 });
 }
 
-/** C안: 버튼 → 모달 제출 → 원래 메시지 업데이트 */
+/** C안: 버튼 → 모달 제출 → 체크리스트로 메시지 업데이트 */
 async function handleButtonPlanSubmission(
 	userId: string,
 	teamId: string,
@@ -192,7 +204,6 @@ async function handleButtonPlanSubmission(
 		return new Response('', { status: 200 });
 	}
 
-	// KV 체크인 데이터에 라벨 추가
 	const checkIn = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
 	if (checkIn) {
 		let startTime: number;
@@ -202,21 +213,131 @@ async function handleButtonPlanSubmission(
 		} catch {
 			startTime = parseInt(checkIn);
 		}
-		const checkinData = JSON.stringify({ time: startTime, label: planText });
+		const items = planText.split('\n').filter((l: string) => l.trim()).map((l: string) => l.trim());
+		const initialChecked = new Array(items.length).fill(false);
+		const checkinData = JSON.stringify({ time: startTime, label: planText, checked: initialChecked });
 		await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
+		const blocks = buildChecklistBlocks(userId, startTime, items, new Array(items.length).fill(false));
+		const fallbackText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime)})\n:fairy-sprout: 계획: ${items.join(', ')}`;
 
-		// 원래 메시지에서 시간 정보를 가져와 업데이트
-		const lines = planText.split('\n').filter((l: string) => l.trim());
-		const planDisplay = lines.length > 1
-			? '\n' + lines.map((l: string) => `• ${l.trim()}`).join('\n')
-			: ` ${planText}`;
-
-		const updatedMessage =
-			`:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime)})` +
-			`\n:fairy-sprout: 계획:${planDisplay}`;
-
-		await updateMessage(env, teamId, channelId, messageTs, updatedMessage);
+		await updateMessage(env, teamId, channelId, messageTs, fallbackText, blocks);
 	}
 
 	return new Response('', { status: 200 });
+}
+
+/** 체크리스트 항목 토글 */
+async function handleToggleCheck(payload: SlackInteractionPayload, env: Env): Promise<Response> {
+	const { user, channel, message, actions } = payload;
+	if (!channel || !message || !actions?.[0]) {
+		return new Response('', { status: 200 });
+	}
+
+	const action = actions[0];
+	const blocks = message.blocks || [];
+
+	// 헤더에서 userId와 startTime 추출
+	const headerBlock = blocks.find((b) => b.block_id === 'checklist_header');
+	const headerText = headerBlock?.text?.text || '';
+	const userIdMatch = headerText.match(/<@([^>]+)>/);
+	const userId = userIdMatch ? userIdMatch[1] : user.id;
+
+	// 체크리스트 항목 수집 및 토글
+	const items: string[] = [];
+	const checked: boolean[] = [];
+
+	for (const block of blocks) {
+		if (block.type === 'section' && block.accessory?.action_id?.startsWith('toggle_check_')) {
+			const accValue = block.accessory.value || '';
+			const [accState, ...accTextParts] = accValue.split(':');
+			const accText = accTextParts.join(':');
+
+			let isChecked = accState === 'checked';
+			if (block.block_id === action.block_id) {
+				isChecked = !isChecked;
+			}
+
+			items.push(accText);
+			checked.push(isChecked);
+		}
+	}
+
+	const checkIn = await env.STUDY_KV.get(`${user.team_id}:checkin:${userId}`);
+	let startTime = Date.now();
+	if (checkIn) {
+		try {
+			const parsed = JSON.parse(checkIn);
+			startTime = typeof parsed === 'object' && parsed.time ? parsed.time : parseInt(checkIn);
+		} catch {
+			startTime = parseInt(checkIn);
+		}
+
+		// KV에 checked 상태 저장
+		const label = items.join('\n');
+		const checkinData = JSON.stringify({ time: startTime, label, checked });
+		await env.STUDY_KV.put(`${user.team_id}:checkin:${userId}`, checkinData);
+	}
+
+	const updatedBlocks = buildChecklistBlocks(userId, startTime, items, checked);
+	await updateMessage(env, user.team_id, channel.id, message.ts, message.text, updatedBlocks);
+
+	return new Response('', { status: 200 });
+}
+
+/** 체크리스트 블록 생성 */
+function buildChecklistBlocks(userId: string, startTime: number, items: string[], checked: boolean[]): SlackBlock[] {
+	const doneCount = checked.filter(Boolean).length;
+	const totalCount = items.length;
+
+	const blocks: SlackBlock[] = [
+		{
+			type: 'section',
+			block_id: 'checklist_header',
+			text: {
+				type: 'mrkdwn',
+				text: `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime)})`,
+			},
+		},
+		{ type: 'divider' },
+		{
+			type: 'section',
+			block_id: 'checklist_label',
+			text: { type: 'mrkdwn', text: `:fairy-sprout: *오늘의 계획* (${doneCount}/${totalCount})` },
+		},
+	];
+
+	for (let i = 0; i < items.length; i++) {
+		blocks.push({
+			type: 'section',
+			block_id: `checklist_${i}`,
+			text: {
+				type: 'mrkdwn',
+				text: checked[i] ? `:fairy-party: ~${items[i]}~` : `${items[i]}`,
+			},
+			accessory: checked[i]
+				? {
+					type: 'button',
+					text: { type: 'plain_text', text: '취소' },
+					action_id: `toggle_check_${i}`,
+					value: `checked:${items[i]}`,
+				}
+				: {
+					type: 'button',
+					text: { type: 'plain_text', text: '완료' },
+					action_id: `toggle_check_${i}`,
+					value: `unchecked:${items[i]}`,
+					style: 'primary',
+				},
+		});
+	}
+
+	if (doneCount === totalCount && totalCount > 0) {
+		blocks.push({
+			type: 'context',
+			block_id: 'checklist_done',
+			elements: [{ type: 'mrkdwn', text: ':fairy-party: 모든 계획을 완료했어요!' }],
+		});
+	}
+
+	return blocks;
 }
