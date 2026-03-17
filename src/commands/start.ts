@@ -2,11 +2,12 @@
  * /start 커맨드 핸들러
  */
 
-import { reply, replyEphemeral, postMessage, getUserName, getBotToken } from '../utils/slack';
+import { reply, replyEphemeral, postMessage, postMessageWithBlocks, getUserName, getBotToken } from '../utils/slack';
 import { formatTime, formatDuration } from '../utils/format';
 import { getTodayKey } from '../utils/date';
+import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
 
-const RESERVED_SUBCOMMANDS = ['plan'];
+const RESERVED_SUBCOMMANDS = ['plan', 'add'];
 
 export async function handleStart(
 	env: Env,
@@ -18,6 +19,10 @@ export async function handleStart(
 ): Promise<Response> {
 	if (text === 'plan') {
 		return handleStartPlan(env, teamId, userId, channelId, triggerId);
+	}
+
+	if (text === 'add') {
+		return handleStartAdd(env, teamId, userId, channelId);
 	}
 
 	const now = Date.now();
@@ -104,6 +109,7 @@ async function handleStartPlan(
 				{
 					type: 'input',
 					block_id: 'plan_block',
+					optional: true,
 					label: { type: 'plain_text', text: ':fairy-sprout: 오늘의 계획' },
 					element: {
 						type: 'plain_text_input',
@@ -113,6 +119,23 @@ async function handleStartPlan(
 							type: 'plain_text',
 							text: '기획서 작성\n코드리뷰\nPR 머지',
 						},
+					},
+				},
+				{
+					type: 'input',
+					block_id: 'tag_block',
+					label: { type: 'plain_text', text: ':fairy-fire: 카테고리' },
+					element: {
+						type: 'static_select',
+						action_id: 'tag_select',
+						initial_option: {
+							text: { type: 'plain_text', text: SESSION_TAGS.find(t => t.value === DEFAULT_TAG)!.label },
+							value: DEFAULT_TAG,
+						},
+						options: SESSION_TAGS.map(tag => ({
+							text: { type: 'plain_text', text: tag.label },
+							value: tag.value,
+						})),
 					},
 				},
 			],
@@ -135,4 +158,57 @@ async function handleStartPlan(
 	}
 
 	return new Response('', { status: 200 });
+}
+
+async function handleStartAdd(env: Env, teamId: string, userId: string, channelId: string): Promise<Response> {
+	const now = Date.now();
+	const existing = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
+
+	if (existing) {
+		let startTime: number;
+		try {
+			const parsed = JSON.parse(existing);
+			startTime = typeof parsed === 'object' && parsed.time ? parsed.time : parseInt(existing);
+		} catch {
+			startTime = parseInt(existing);
+		}
+		const elapsed = formatDuration(now - startTime);
+		return replyEphemeral(`이미 집중 중이에요! 요정이 지켜보고 있어요 :fairy-hourglass: (${elapsed} 경과)`);
+	}
+
+	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, now.toString());
+
+	const todayKey = getTodayKey();
+	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');
+	if (!todayList.includes(userId)) {
+		todayList.push(userId);
+		await env.STUDY_KV.put(`${teamId}:today:${todayKey}`, JSON.stringify(todayList));
+	}
+
+	const publicMessage = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now)})`;
+
+	const blocks = [
+		{
+			type: 'section',
+			text: { type: 'mrkdwn', text: publicMessage },
+		},
+		{
+			type: 'actions',
+			elements: [
+				{
+					type: 'button',
+					text: { type: 'plain_text', text: ':fairy-sprout: 계획 추가' },
+					action_id: 'add_plan_button',
+				},
+			],
+		},
+	];
+
+	const posted = await postMessageWithBlocks(env, teamId, channelId, publicMessage, blocks);
+
+	if (posted) {
+		return replyEphemeral(':fairy-wand: 집중 시작!');
+	} else {
+		return reply(publicMessage);
+	}
 }
