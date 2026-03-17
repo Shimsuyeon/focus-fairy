@@ -16,6 +16,7 @@ import {
 import { reply } from './utils/slack';
 import { handleLanding } from './pages/landing/index';
 import { handleOAuthInstall, handleOAuthCallback } from './pages/install/index';
+import { handleInteraction } from './interactions';
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
@@ -36,23 +37,26 @@ export default {
 			}
 		}
 
-		// 슬랙 커맨드 엔드포인트만 허용
+		// Slack Interactivity 엔드포인트
+		if (url.pathname === '/slack/interactions') {
+			return handleInteraction(request, env);
+		}
+
 		if (url.pathname !== '/slack/commands') {
 			return new Response('Not found', { status: 404 });
 		}
 
-		// 폼 데이터 파싱
 		const formData = await request.formData();
 		const command = formData.get('command') as string;
 		const userId = formData.get('user_id') as string;
 		const teamId = formData.get('team_id') as string;
 		const channelId = formData.get('channel_id') as string;
 		const text = (formData.get('text') as string)?.trim() || '';
+		const triggerId = (formData.get('trigger_id') as string) || '';
 
-		// 커맨드 라우팅
 		switch (command) {
 			case '/start':
-				return handleStart(env, teamId, userId, channelId, text);
+				return handleStart(env, teamId, userId, channelId, text, triggerId);
 			case '/end':
 				return handleEnd(env, teamId, userId, channelId, text);
 			case '/weekly':
