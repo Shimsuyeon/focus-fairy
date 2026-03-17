@@ -138,6 +138,42 @@ export async function updateMessage(
 	}
 }
 
+/** @username으로 유저 ID 조회 (users.list에서 name/display_name 매칭) */
+export async function lookupUserByName(env: Env, teamId: string, username: string): Promise<string | null> {
+	const token = await getBotToken(env, teamId);
+	if (!token) return null;
+
+	try {
+		const response = await fetch('https://slack.com/api/users.list?limit=200', {
+			headers: { Authorization: `Bearer ${token}` },
+		});
+		const data = (await response.json()) as {
+			ok: boolean;
+			members?: Array<{
+				id: string;
+				name?: string;
+				profile?: { display_name?: string; display_name_normalized?: string };
+				deleted?: boolean;
+			}>;
+		};
+
+		if (!data.ok || !data.members) return null;
+
+		const lower = username.toLowerCase();
+		const found = data.members.find(
+			(m) =>
+				!m.deleted &&
+				(m.name?.toLowerCase() === lower ||
+					m.profile?.display_name?.toLowerCase() === lower ||
+					m.profile?.display_name_normalized?.toLowerCase() === lower)
+		);
+		return found?.id || null;
+	} catch (error) {
+		console.error('Failed to lookup user by name:', error);
+		return null;
+	}
+}
+
 /** 사용자 이름 캐시 (요청당 메모리 캐시) */
 const userNameCache = new Map<string, string>();
 
