@@ -65,6 +65,75 @@ export async function postMessage(env: Env, teamId: string, channel: string, tex
 	}
 }
 
+/** 채널에 블록 메시지 전송 (버튼 등 interactive 요소 포함) */
+export async function postMessageWithBlocks(
+	env: Env,
+	teamId: string,
+	channel: string,
+	text: string,
+	blocks: unknown[]
+): Promise<string | null> {
+	const token = await getBotToken(env, teamId);
+	if (!token) {
+		console.error('No bot token for team:', teamId);
+		return null;
+	}
+
+	try {
+		const response = await fetch('https://slack.com/api/chat.postMessage', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${token}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ channel, text, blocks }),
+		});
+
+		const data = (await response.json()) as { ok: boolean; ts?: string; error?: string };
+		if (!data.ok) {
+			console.error('Failed to post message with blocks:', data.error);
+			return null;
+		}
+		return data.ts || null;
+	} catch (error) {
+		console.error('Failed to post message with blocks:', error);
+		return null;
+	}
+}
+
+/** 기존 메시지 업데이트 (chat.update) */
+export async function updateMessage(
+	env: Env,
+	teamId: string,
+	channel: string,
+	ts: string,
+	text: string
+): Promise<boolean> {
+	const token = await getBotToken(env, teamId);
+	if (!token) return false;
+
+	try {
+		const response = await fetch('https://slack.com/api/chat.update', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${token}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ channel, ts, text }),
+		});
+
+		const data = (await response.json()) as { ok: boolean; error?: string };
+		if (!data.ok) {
+			console.error('Failed to update message:', data.error);
+			return false;
+		}
+		return true;
+	} catch (error) {
+		console.error('Failed to update message:', error);
+		return false;
+	}
+}
+
 /** 사용자 이름 캐시 (요청당 메모리 캐시) */
 const userNameCache = new Map<string, string>();
 
