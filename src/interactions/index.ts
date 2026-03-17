@@ -3,7 +3,7 @@
  * 모달 제출, 버튼 클릭 등 interactive component 이벤트 처리
  */
 
-import { postMessage, updateMessage, getBotToken } from '../utils/slack';
+import { postMessage, updateMessage, getBotToken, postEphemeral } from '../utils/slack';
 import { formatTime } from '../utils/format';
 import { getTodayKey } from '../utils/date';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
@@ -92,6 +92,12 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env): P
 async function handleAddPlanButton(payload: SlackInteractionPayload, env: Env): Promise<Response> {
 	const { trigger_id, user, channel, message } = payload;
 	if (!trigger_id || !channel || !message) {
+		return new Response('', { status: 200 });
+	}
+
+	const ownerMatch = message.text?.match(/<@([A-Z0-9]+)>/);
+	if (ownerMatch && ownerMatch[1] !== user.id) {
+		await postEphemeral(env, user.team_id, channel.id, user.id, ':fairy-zzz: 본인의 세션만 수정할 수 있어요!');
 		return new Response('', { status: 200 });
 	}
 
@@ -273,6 +279,11 @@ async function handleEditPlanButton(payload: SlackInteractionPayload, env: Env):
 	const userIdMatch = headerText.match(/<@([^>]+)>/);
 	const userId = userIdMatch ? userIdMatch[1] : user.id;
 
+	if (userId !== user.id) {
+		await postEphemeral(env, user.team_id, channel.id, user.id, ':fairy-zzz: 본인의 세션만 수정할 수 있어요!');
+		return new Response('', { status: 200 });
+	}
+
 	const checkIn = await env.STUDY_KV.get(`${user.team_id}:checkin:${userId}`);
 	if (!checkIn) {
 		return new Response('', { status: 200 });
@@ -415,11 +426,17 @@ async function handleToggleCheck(payload: SlackInteractionPayload, env: Env): Pr
 	const action = actions[0];
 	const blocks = message.blocks || [];
 
-	// 헤더에서 userId와 startTime 추출
 	const headerBlock = blocks.find((b) => b.block_id === 'checklist_header');
 	const headerText = headerBlock?.text?.text || '';
 	const userIdMatch = headerText.match(/<@([^>]+)>/);
 	const userId = userIdMatch ? userIdMatch[1] : user.id;
+
+	if (userId !== user.id) {
+		if (channel) {
+			await postEphemeral(env, user.team_id, channel.id, user.id, ':fairy-zzz: 본인의 세션만 수정할 수 있어요!');
+		}
+		return new Response('', { status: 200 });
+	}
 
 	// 체크리스트 항목 수집 및 토글
 	const items: string[] = [];

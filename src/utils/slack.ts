@@ -65,6 +65,27 @@ export async function postMessage(env: Env, teamId: string, channel: string, tex
 	}
 }
 
+/** 특정 유저에게만 보이는 ephemeral 메시지 전송 */
+export async function postEphemeral(env: Env, teamId: string, channel: string, userId: string, text: string): Promise<boolean> {
+	const token = await getBotToken(env, teamId);
+	if (!token) return false;
+
+	try {
+		const response = await fetch('https://slack.com/api/chat.postEphemeral', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${token}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ channel, user: userId, text }),
+		});
+		const data = (await response.json()) as { ok: boolean; error?: string };
+		return data.ok;
+	} catch {
+		return false;
+	}
+}
+
 /** 채널에 블록 메시지 전송 (버튼 등 interactive 요소 포함) */
 export async function postMessageWithBlocks(
 	env: Env,
