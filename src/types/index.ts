@@ -10,6 +10,7 @@ export interface Session {
 	duration: number;
 	label?: string;
 	checked?: boolean[];
+	tag?: string;
 }
 
 /** 날짜 범위 (리포트용) */

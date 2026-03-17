@@ -3,11 +3,12 @@
  */
 
 import type { Session } from '../types';
-import { reply, replyEphemeral, postMessage, getUserName } from '../utils/slack';
+import { reply, replyEphemeral, postMessage, updateMessage, getUserName } from '../utils/slack';
 import { formatTime, formatDuration, parseDuration } from '../utils/format';
 import { getDateKey, isCurrentWeek } from '../utils/date';
 import { getWeekTotalForDate } from '../services/session';
-import { ENCOURAGEMENTS, MAX_AUTO_DURATION } from '../constants/messages';
+import { ENCOURAGEMENTS, MAX_AUTO_DURATION, SESSION_TAGS } from '../constants/messages';
+import { buildFinalChecklistBlocks } from '../interactions';
 
 export async function handleEnd(
 	env: Env,
@@ -27,12 +28,18 @@ export async function handleEnd(
 	let startTime: number;
 	let label: string | undefined;
 	let checked: boolean[] | undefined;
+	let tag: string | undefined;
+	let messageTs: string | undefined;
+	let msgChannelId: string | undefined;
 	try {
 		const parsed = JSON.parse(checkIn);
 		if (typeof parsed === 'object' && parsed.time) {
 			startTime = parsed.time;
 			label = parsed.label;
 			checked = parsed.checked;
+			tag = parsed.tag;
+			messageTs = parsed.messageTs;
+			msgChannelId = parsed.channelId;
 		} else {
 			startTime = parseInt(checkIn);
 		}
@@ -67,6 +74,7 @@ export async function handleEnd(
 	const session: Session = { userId, start: startTime, end: now, duration };
 	if (label) session.label = label;
 	if (checked) session.checked = checked;
+	if (tag) session.tag = tag;
 	sessions.push(session);
 	await env.STUDY_KV.put(sessionsKey, JSON.stringify(sessions));
 
@@ -76,6 +84,14 @@ export async function handleEnd(
 	await env.STUDY_KV.put(`${teamId}:total`, JSON.stringify(totalRecords));
 
 	await env.STUDY_KV.delete(`${teamId}:checkin:${userId}`);
+
+	// 체크리스트 메시지가 있으면 버튼 제거한 최종 상태로 업데이트
+	if (messageTs && msgChannelId && label && checked) {
+		const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;
+		const items = label.split('\n').filter((l: string) => l.trim()).map((l: string) => l.trim());
+		const finalBlocks = buildFinalChecklistBlocks(userId, startTime, items, checked, tagLabel);
+		await updateMessage(env, teamId, msgChannelId, messageTs, '', finalBlocks);
+	}
 
 	// 세션이 저장된 주의 누적 계산
 	const weekTotal = await getWeekTotalForDate(env, teamId, userId, startTime);
@@ -88,10 +104,14 @@ export async function handleEnd(
 
 	const randomMsg = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
 
+	const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;
 	let publicMessage =
 		`:fairy-party: <@${userId}>님 수고했어요! (${formatTime(now)})\n` +
 		`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}\n` +
 		`:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}`;
+	if (tagLabel) {
+		publicMessage += `\n:fairy-fire: 카테고리: ${tagLabel}`;
+	}
 	if (label && checked) {
 		const items = label.split('\n').filter((l: string) => l.trim());
 		const doneCount = checked.filter(Boolean).length;

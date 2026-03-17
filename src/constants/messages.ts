@@ -27,3 +27,14 @@ export const MEDALS = [':fairy-gold:', ':fairy-silver:', ':fairy-bronze:'] as co
 /** 최대 자동 기록 시간 (6시간) */
 export const MAX_AUTO_DURATION = 6 * 60 * 60 * 1000;
 
+/** 세션 카테고리 태그 */
+export const SESSION_TAGS = [
+	{ value: 'exercise', label: '운동' },
+	{ value: 'reading', label: '독서' },
+	{ value: 'side', label: '사이드' },
+	{ value: 'study', label: '공부' },
+	{ value: 'etc', label: '기타' },
+] as const;
+
+export const DEFAULT_TAG = 'etc';
+

@@ -6,6 +6,7 @@
 import { postMessage, updateMessage, getBotToken } from '../utils/slack';
 import { formatTime } from '../utils/format';
 import { getTodayKey } from '../utils/date';
+import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
 
 interface SlackBlock {
 	type: string;
@@ -106,6 +107,7 @@ async function handleAddPlanButton(payload: SlackInteractionPayload, env: Env): 
 				{
 					type: 'input',
 					block_id: 'plan_block',
+					optional: true,
 					label: { type: 'plain_text', text: ':fairy-sprout: 오늘의 계획' },
 					element: {
 						type: 'plain_text_input',
@@ -115,6 +117,23 @@ async function handleAddPlanButton(payload: SlackInteractionPayload, env: Env): 
 							type: 'plain_text',
 							text: '기획서 작성\n코드리뷰\nPR 머지',
 						},
+					},
+				},
+				{
+					type: 'input',
+					block_id: 'tag_block',
+					label: { type: 'plain_text', text: ':fairy-fire: 카테고리' },
+					element: {
+						type: 'static_select',
+						action_id: 'tag_select',
+						initial_option: {
+							text: { type: 'plain_text', text: SESSION_TAGS.find(t => t.value === DEFAULT_TAG)!.label },
+							value: DEFAULT_TAG,
+						},
+						options: SESSION_TAGS.map(tag => ({
+							text: { type: 'plain_text', text: tag.label },
+							value: tag.value,
+						})),
 					},
 				},
 			],
@@ -140,10 +159,13 @@ async function handleStartPlanSubmission(
 	view: NonNullable<SlackInteractionPayload['view']>,
 	env: Env
 ): Promise<Response> {
-	const planText = view.state.values['plan_block']?.['plan_input']?.value?.trim();
+	const tag = view.state.values['tag_block']?.['tag_select']?.selected_option?.value || DEFAULT_TAG;
+	const tagLabel = SESSION_TAGS.find(t => t.value === tag)?.label || '기타';
+	const rawPlan = view.state.values['plan_block']?.['plan_input']?.value?.trim();
+	const planText = rawPlan || tagLabel;
 	const channelId = view.private_metadata;
 
-	if (!planText || !channelId) {
+	if (!channelId) {
 		return new Response('', { status: 200 });
 	}
 
@@ -157,7 +179,7 @@ async function handleStartPlanSubmission(
 		}), { headers: { 'Content-Type': 'application/json' } });
 	}
 
-	const checkinData = JSON.stringify({ time: now, label: planText });
+	const checkinData = JSON.stringify({ time: now, label: planText, tag });
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
 
 	const todayKey = getTodayKey();
@@ -174,7 +196,8 @@ async function handleStartPlanSubmission(
 
 	const publicMessage =
 		`:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now)})` +
-		`\n:fairy-sprout: 계획:${planDisplay}`;
+		`\n:fairy-sprout: 계획:${planDisplay}` +
+		`\n:fairy-fire: 카테고리: ${tagLabel}`;
 
 	await postMessage(env, teamId, channelId, publicMessage);
 
@@ -188,7 +211,10 @@ async function handleButtonPlanSubmission(
 	view: NonNullable<SlackInteractionPayload['view']>,
 	env: Env
 ): Promise<Response> {
-	const planText = view.state.values['plan_block']?.['plan_input']?.value?.trim();
+	const tag = view.state.values['tag_block']?.['tag_select']?.selected_option?.value || DEFAULT_TAG;
+	const tagLabel = SESSION_TAGS.find(t => t.value === tag)?.label || '기타';
+	const rawPlan = view.state.values['plan_block']?.['plan_input']?.value?.trim();
+	const planText = rawPlan || tagLabel;
 
 	let channelId: string;
 	let messageTs: string;
@@ -200,7 +226,7 @@ async function handleButtonPlanSubmission(
 		return new Response('', { status: 200 });
 	}
 
-	if (!planText || !channelId || !messageTs) {
+	if (!channelId || !messageTs) {
 		return new Response('', { status: 200 });
 	}
 
@@ -215,9 +241,9 @@ async function handleButtonPlanSubmission(
 		}
 		const items = planText.split('\n').filter((l: string) => l.trim()).map((l: string) => l.trim());
 		const initialChecked = new Array(items.length).fill(false);
-		const checkinData = JSON.stringify({ time: startTime, label: planText, checked: initialChecked });
+		const checkinData = JSON.stringify({ time: startTime, label: planText, checked: initialChecked, tag, messageTs, channelId });
 		await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
-		const blocks = buildChecklistBlocks(userId, startTime, items, new Array(items.length).fill(false));
+		const blocks = buildChecklistBlocks(userId, startTime, items, new Array(items.length).fill(false), tagLabel);
 		const fallbackText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime)})\n:fairy-sprout: 계획: ${items.join(', ')}`;
 
 		await updateMessage(env, teamId, channelId, messageTs, fallbackText, blocks);
@@ -263,31 +289,51 @@ async function handleToggleCheck(payload: SlackInteractionPayload, env: Env): Pr
 	}
 
 	const checkIn = await env.STUDY_KV.get(`${user.team_id}:checkin:${userId}`);
-	let startTime = Date.now();
-	if (checkIn) {
-		try {
-			const parsed = JSON.parse(checkIn);
-			startTime = typeof parsed === 'object' && parsed.time ? parsed.time : parseInt(checkIn);
-		} catch {
-			startTime = parseInt(checkIn);
-		}
-
-		// KV에 checked 상태 저장
-		const label = items.join('\n');
-		const checkinData = JSON.stringify({ time: startTime, label, checked });
-		await env.STUDY_KV.put(`${user.team_id}:checkin:${userId}`, checkinData);
+	if (!checkIn) {
+		return new Response('', { status: 200 });
 	}
 
-	const updatedBlocks = buildChecklistBlocks(userId, startTime, items, checked);
+	let startTime = Date.now();
+	let tag: string | undefined;
+	let storedMessageTs: string | undefined;
+	let storedChannelId: string | undefined;
+	try {
+		const parsed = JSON.parse(checkIn);
+		if (typeof parsed === 'object' && parsed.time) {
+			startTime = parsed.time;
+			tag = parsed.tag;
+			storedMessageTs = parsed.messageTs;
+			storedChannelId = parsed.channelId;
+		} else {
+			startTime = parseInt(checkIn);
+		}
+	} catch {
+		startTime = parseInt(checkIn);
+	}
+
+	const label = items.join('\n');
+	const checkinData = JSON.stringify({
+		time: startTime, label, checked,
+		...(tag && { tag }),
+		...(storedMessageTs && { messageTs: storedMessageTs }),
+		...(storedChannelId && { channelId: storedChannelId }),
+	});
+	await env.STUDY_KV.put(`${user.team_id}:checkin:${userId}`, checkinData);
+
+	const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;
+	const updatedBlocks = buildChecklistBlocks(userId, startTime, items, checked, tagLabel);
 	await updateMessage(env, user.team_id, channel.id, message.ts, message.text, updatedBlocks);
 
 	return new Response('', { status: 200 });
 }
 
 /** 체크리스트 블록 생성 */
-function buildChecklistBlocks(userId: string, startTime: number, items: string[], checked: boolean[]): SlackBlock[] {
+function buildChecklistBlocks(userId: string, startTime: number, items: string[], checked: boolean[], tagLabel?: string): SlackBlock[] {
 	const doneCount = checked.filter(Boolean).length;
 	const totalCount = items.length;
+
+	const headerText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime)})` +
+		(tagLabel ? `\n:fairy-fire: 카테고리: ${tagLabel}` : '');
 
 	const blocks: SlackBlock[] = [
 		{
@@ -295,7 +341,7 @@ function buildChecklistBlocks(userId: string, startTime: number, items: string[]
 			block_id: 'checklist_header',
 			text: {
 				type: 'mrkdwn',
-				text: `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime)})`,
+				text: headerText,
 			},
 		},
 		{ type: 'divider' },
@@ -338,6 +384,48 @@ function buildChecklistBlocks(userId: string, startTime: number, items: string[]
 			elements: [{ type: 'mrkdwn', text: ':fairy-party: 모든 계획을 완료했어요!' }],
 		});
 	}
+
+	return blocks;
+}
+
+/** 종료된 체크리스트 블록 (버튼 없는 최종 상태) */
+export function buildFinalChecklistBlocks(userId: string, startTime: number, items: string[], checked: boolean[], tagLabel?: string): SlackBlock[] {
+	const doneCount = checked.filter(Boolean).length;
+	const totalCount = items.length;
+
+	const headerText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! (${formatTime(startTime)})` +
+		(tagLabel ? `\n:fairy-fire: 카테고리: ${tagLabel}` : '');
+
+	const blocks: SlackBlock[] = [
+		{
+			type: 'section',
+			block_id: 'checklist_header',
+			text: { type: 'mrkdwn', text: headerText },
+		},
+		{ type: 'divider' },
+		{
+			type: 'section',
+			block_id: 'checklist_label',
+			text: { type: 'mrkdwn', text: `:fairy-sprout: *계획 결과* (${doneCount}/${totalCount} 완료)` },
+		},
+	];
+
+	for (let i = 0; i < items.length; i++) {
+		blocks.push({
+			type: 'section',
+			block_id: `checklist_${i}`,
+			text: {
+				type: 'mrkdwn',
+				text: checked[i] ? `:fairy-party: ~${items[i]}~` : `${items[i]}`,
+			},
+		});
+	}
+
+	blocks.push({
+		type: 'context',
+		block_id: 'checklist_ended',
+		elements: [{ type: 'mrkdwn', text: ':fairy-zzz: 세션이 종료되었습니다' }],
+	});
 
 	return blocks;
 }

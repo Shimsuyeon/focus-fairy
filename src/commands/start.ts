@@ -5,6 +5,7 @@
 import { reply, replyEphemeral, postMessage, postMessageWithBlocks, getUserName, getBotToken } from '../utils/slack';
 import { formatTime, formatDuration } from '../utils/format';
 import { getTodayKey } from '../utils/date';
+import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
 
 const RESERVED_SUBCOMMANDS = ['plan', 'add'];
 
@@ -108,6 +109,7 @@ async function handleStartPlan(
 				{
 					type: 'input',
 					block_id: 'plan_block',
+					optional: true,
 					label: { type: 'plain_text', text: ':fairy-sprout: 오늘의 계획' },
 					element: {
 						type: 'plain_text_input',
@@ -117,6 +119,23 @@ async function handleStartPlan(
 							type: 'plain_text',
 							text: '기획서 작성\n코드리뷰\nPR 머지',
 						},
+					},
+				},
+				{
+					type: 'input',
+					block_id: 'tag_block',
+					label: { type: 'plain_text', text: ':fairy-fire: 카테고리' },
+					element: {
+						type: 'static_select',
+						action_id: 'tag_select',
+						initial_option: {
+							text: { type: 'plain_text', text: SESSION_TAGS.find(t => t.value === DEFAULT_TAG)!.label },
+							value: DEFAULT_TAG,
+						},
+						options: SESSION_TAGS.map(tag => ({
+							text: { type: 'plain_text', text: tag.label },
+							value: tag.value,
+						})),
 					},
 				},
 			],
