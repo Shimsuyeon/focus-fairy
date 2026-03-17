@@ -62,6 +62,8 @@ async function handleViewSubmission(payload: SlackInteractionPayload, env: Env):
 			return handleStartPlanSubmission(user.id, user.team_id, view, env);
 		case 'start_button_plan_modal':
 			return handleButtonPlanSubmission(user.id, user.team_id, view, env);
+		case 'edit_plan_modal':
+			return handleEditPlanSubmission(user.id, user.team_id, view, env);
 		default:
 			return new Response('', { status: 200 });
 	}
@@ -73,6 +75,10 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env): P
 
 	if (actionId === 'add_plan_button') {
 		return handleAddPlanButton(payload, env);
+	}
+
+	if (actionId === 'edit_plan_button') {
+		return handleEditPlanButton(payload, env);
 	}
 
 	if (actionId?.startsWith('toggle_check_')) {
@@ -252,6 +258,153 @@ async function handleButtonPlanSubmission(
 	return new Response('', { status: 200 });
 }
 
+/** "계획 수정" 버튼 클릭 → 기존 계획이 채워진 모달 오픈 */
+async function handleEditPlanButton(payload: SlackInteractionPayload, env: Env): Promise<Response> {
+	const { trigger_id, user, channel, message } = payload;
+	if (!trigger_id || !channel || !message) {
+		return new Response('', { status: 200 });
+	}
+
+	const token = await getBotToken(env, user.team_id);
+	if (!token) return new Response('', { status: 200 });
+
+	const headerBlock = message.blocks?.find((b: SlackBlock) => b.block_id === 'checklist_header');
+	const headerText = headerBlock?.text?.text || '';
+	const userIdMatch = headerText.match(/<@([^>]+)>/);
+	const userId = userIdMatch ? userIdMatch[1] : user.id;
+
+	const checkIn = await env.STUDY_KV.get(`${user.team_id}:checkin:${userId}`);
+	if (!checkIn) {
+		return new Response('', { status: 200 });
+	}
+
+	let currentLabel = '';
+	let currentTag = DEFAULT_TAG;
+	try {
+		const parsed = JSON.parse(checkIn);
+		if (typeof parsed === 'object' && parsed.time) {
+			currentLabel = parsed.label || '';
+			currentTag = parsed.tag || DEFAULT_TAG;
+		}
+	} catch {}
+
+	const metadata = JSON.stringify({ channelId: channel.id, messageTs: message.ts });
+
+	const modal = {
+		trigger_id,
+		view: {
+			type: 'modal',
+			callback_id: 'edit_plan_modal',
+			private_metadata: metadata,
+			title: { type: 'plain_text', text: '계획 수정' },
+			submit: { type: 'plain_text', text: '수정!' },
+			close: { type: 'plain_text', text: '취소' },
+			blocks: [
+				{
+					type: 'input',
+					block_id: 'plan_block',
+					optional: true,
+					label: { type: 'plain_text', text: ':fairy-sprout: 오늘의 계획' },
+					element: {
+						type: 'plain_text_input',
+						action_id: 'plan_input',
+						multiline: true,
+						initial_value: currentLabel,
+						placeholder: {
+							type: 'plain_text',
+							text: '기획서 작성\n코드리뷰\nPR 머지',
+						},
+					},
+				},
+				{
+					type: 'input',
+					block_id: 'tag_block',
+					label: { type: 'plain_text', text: ':fairy-fire: 카테고리' },
+					element: {
+						type: 'static_select',
+						action_id: 'tag_select',
+						initial_option: {
+							text: { type: 'plain_text', text: SESSION_TAGS.find(t => t.value === currentTag)?.label || '기타' },
+							value: currentTag,
+						},
+						options: SESSION_TAGS.map(tag => ({
+							text: { type: 'plain_text', text: tag.label },
+							value: tag.value,
+						})),
+					},
+				},
+			],
+		},
+	};
+
+	await fetch('https://slack.com/api/views.open', {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${token}`,
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(modal),
+	});
+
+	return new Response('', { status: 200 });
+}
+
+/** 계획 수정 모달 제출 → KV 업데이트 + 체크리스트 메시지 업데이트 */
+async function handleEditPlanSubmission(
+	userId: string,
+	teamId: string,
+	view: NonNullable<SlackInteractionPayload['view']>,
+	env: Env
+): Promise<Response> {
+	const tag = view.state.values['tag_block']?.['tag_select']?.selected_option?.value || DEFAULT_TAG;
+	const tagLabel = SESSION_TAGS.find(t => t.value === tag)?.label || '기타';
+	const rawPlan = view.state.values['plan_block']?.['plan_input']?.value?.trim();
+	const planText = rawPlan || tagLabel;
+
+	let channelId: string;
+	let messageTs: string;
+	try {
+		const meta = JSON.parse(view.private_metadata);
+		channelId = meta.channelId;
+		messageTs = meta.messageTs;
+	} catch {
+		return new Response('', { status: 200 });
+	}
+
+	if (!channelId || !messageTs) {
+		return new Response('', { status: 200 });
+	}
+
+	const checkIn = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
+	if (!checkIn) {
+		return new Response('', { status: 200 });
+	}
+
+	let startTime = Date.now();
+	try {
+		const parsed = JSON.parse(checkIn);
+		if (typeof parsed === 'object' && parsed.time) {
+			startTime = parsed.time;
+		} else {
+			startTime = parseInt(checkIn);
+		}
+	} catch {
+		startTime = parseInt(checkIn);
+	}
+
+	const items = planText.split('\n').filter((l: string) => l.trim()).map((l: string) => l.trim());
+	const initialChecked = new Array(items.length).fill(false);
+	const checkinData = JSON.stringify({ time: startTime, label: planText, checked: initialChecked, tag, messageTs, channelId });
+	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
+
+	const blocks = buildChecklistBlocks(userId, startTime, items, initialChecked, tagLabel);
+	const fallbackText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime)})\n:fairy-sprout: 계획: ${items.join(', ')}`;
+
+	await updateMessage(env, teamId, channelId, messageTs, fallbackText, blocks);
+
+	return new Response('', { status: 200 });
+}
+
 /** 체크리스트 항목 토글 */
 async function handleToggleCheck(payload: SlackInteractionPayload, env: Env): Promise<Response> {
 	const { user, channel, message, actions } = payload;
@@ -384,6 +537,17 @@ function buildChecklistBlocks(userId: string, startTime: number, items: string[]
 			elements: [{ type: 'mrkdwn', text: ':fairy-party: 모든 계획을 완료했어요!' }],
 		});
 	}
+
+	blocks.push({
+		type: 'actions',
+		block_id: 'checklist_actions',
+		elements: [{
+			type: 'button',
+			text: { type: 'plain_text', text: '계획 수정' },
+			action_id: 'edit_plan_button',
+			value: 'edit',
+		}],
+	});
 
 	return blocks;
 }
