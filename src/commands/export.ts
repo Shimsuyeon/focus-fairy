@@ -7,6 +7,7 @@ import type { Session } from '../types';
 import { replyEphemeral, uploadFile } from '../utils/slack';
 import { formatDuration } from '../utils/format';
 import { getDateRange } from '../utils/date';
+import { SESSION_TAGS } from '../constants/messages';
 
 /** 지원하는 형식 */
 const FORMATS = ['text', 'graph', 'csv'] as const;
@@ -180,82 +181,102 @@ function generateTextExport(sessions: Array<Session & { date: string }>, label: 
 	return replyEphemeral(message);
 }
 
-/** 그래프 형식 출력 (QuickChart.io) */
+const TAG_COLORS: Record<string, { bg: string; border: string }> = {
+	exercise: { bg: 'rgba(129, 201, 149, 0.7)', border: 'rgba(129, 201, 149, 1)' },
+	reading: { bg: 'rgba(122, 175, 255, 0.7)', border: 'rgba(122, 175, 255, 1)' },
+	side: { bg: 'rgba(197, 138, 249, 0.7)', border: 'rgba(197, 138, 249, 1)' },
+	study: { bg: 'rgba(255, 214, 102, 0.7)', border: 'rgba(255, 214, 102, 1)' },
+	etc: { bg: 'rgba(255, 179, 167, 0.7)', border: 'rgba(255, 179, 167, 1)' },
+};
+
+/** 그래프 형식 출력 (QuickChart.io, 카테고리별 색상) */
 function generateGraphExport(sessions: Array<Session & { date: string }>, label: string, startDate: string, endDate: string): Response {
 	const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-	// 날짜별 집계 (시간 단위)
-	const dailyHours: Record<string, number> = {};
-
 	// 기간 내 모든 날짜 초기화
+	const sortedDates: string[] = [];
 	let current = new Date(startDate + 'T00:00:00Z');
 	const end = new Date(endDate + 'T00:00:00Z');
-
 	while (current <= end) {
-		const dateKey = current.toISOString().split('T')[0];
-		dailyHours[dateKey] = 0;
+		sortedDates.push(current.toISOString().split('T')[0]);
 		current.setUTCDate(current.getUTCDate() + 1);
 	}
 
-	// 세션 집계
-	for (const session of sessions) {
-		const hours = session.duration / (1000 * 60 * 60);
-		dailyHours[session.date] = (dailyHours[session.date] || 0) + hours;
+	// 날짜별 + 카테고리별 집계
+	const dailyByTag: Record<string, Record<string, number>> = {};
+	for (const date of sortedDates) {
+		dailyByTag[date] = {};
 	}
 
-	// 차트 데이터 준비
-	const sortedDates = Object.keys(dailyHours).sort();
+	const usedTags = new Set<string>();
+	for (const session of sessions) {
+		const tag = session.tag || 'etc';
+		const hours = session.duration / (1000 * 60 * 60);
+		dailyByTag[session.date][tag] = (dailyByTag[session.date][tag] || 0) + hours;
+		usedTags.add(tag);
+	}
+
+	// 사용된 태그만 데이터셋 생성 (SESSION_TAGS 순서 유지)
+	const tagOrder = SESSION_TAGS.map(t => t.value).filter(v => usedTags.has(v));
+
 	const labels = sortedDates.map((date) => {
 		const d = new Date(date + 'T00:00:00Z');
 		return `${d.getUTCMonth() + 1}/${d.getUTCDate()}(${dayNames[d.getUTCDay()]})`;
 	});
-	const data = sortedDates.map((date) => Math.round(dailyHours[date] * 10) / 10);
 
-	// QuickChart URL 생성
+	const hasMultipleTags = tagOrder.length > 1;
+
+	const datasets = tagOrder.map((tagValue) => {
+		const tagInfo = SESSION_TAGS.find(t => t.value === tagValue);
+		const colors = TAG_COLORS[tagValue] || TAG_COLORS.etc;
+		return {
+			label: tagInfo?.label || '기타',
+			data: sortedDates.map((date) => Math.round((dailyByTag[date][tagValue] || 0) * 10) / 10),
+			backgroundColor: colors.bg,
+			borderColor: colors.border,
+			borderWidth: 1,
+		};
+	});
+
 	const chartConfig = {
 		type: 'bar',
-		data: {
-			labels: labels,
-			datasets: [
-				{
-					label: '집중 시간 (h)',
-					data: data,
-					backgroundColor: 'rgba(147, 112, 219, 0.7)',
-					borderColor: 'rgba(147, 112, 219, 1)',
-					borderWidth: 1,
-				},
-			],
-		},
+		data: { labels, datasets },
 		options: {
 			scales: {
-				y: {
-					beginAtZero: true,
-					title: { display: true, text: '시간 (h)' },
-				},
+				xAxes: [{ stacked: hasMultipleTags }],
+				yAxes: [{
+					stacked: hasMultipleTags,
+					ticks: { beginAtZero: true },
+					scaleLabel: { display: true, labelString: '시간 (h)' },
+				}],
 			},
-			plugins: {
-				title: {
-					display: true,
-					text: `${label} 집중 기록`,
-				},
-			},
+			title: { display: true, text: `${label} 집중 기록` },
+			legend: { display: hasMultipleTags },
 		},
 	};
 
 	const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}&w=600&h=300`;
 
-	// 총계 계산
 	const totalDuration = sessions.reduce((sum, s) => sum + s.duration, 0);
 	const totalHours = Math.round((totalDuration / (1000 * 60 * 60)) * 10) / 10;
 
-	// 슬랙 블록 형태로 응답
+	// 카테고리별 합계 텍스트
+	let categoryBreakdown = '';
+	if (hasMultipleTags) {
+		const parts = tagOrder.map((tagValue) => {
+			const tagLabel = SESSION_TAGS.find(t => t.value === tagValue)?.label || '기타';
+			const tagHours = sessions
+				.filter(s => (s.tag || 'etc') === tagValue)
+				.reduce((sum, s) => sum + s.duration, 0);
+			return `${tagLabel} ${Math.round((tagHours / (1000 * 60 * 60)) * 10) / 10}h`;
+		});
+		categoryBreakdown = ` | ${parts.join(' · ')}`;
+	}
+
 	const blocks = [
 		{
 			type: 'section',
-			text: {
-				type: 'mrkdwn',
-				text: `:fairy-chart: *${label} 집중 기록*`,
-			},
+			text: { type: 'mrkdwn', text: `:fairy-chart: *${label} 집중 기록*` },
 		},
 		{
 			type: 'image',
@@ -267,17 +288,14 @@ function generateGraphExport(sessions: Array<Session & { date: string }>, label:
 			elements: [
 				{
 					type: 'mrkdwn',
-					text: `총 ${sessions.length}개 세션 | :fairy-hourglass: 합계 ${totalHours}시간`,
+					text: `총 ${sessions.length}개 세션 | :fairy-hourglass: 합계 ${totalHours}시간${categoryBreakdown}`,
 				},
 			],
 		},
 	];
 
 	return new Response(
-		JSON.stringify({
-			response_type: 'ephemeral',
-			blocks: blocks,
-		}),
+		JSON.stringify({ response_type: 'ephemeral', blocks }),
 		{ headers: { 'Content-Type': 'application/json' } }
 	);
 }
