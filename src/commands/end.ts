@@ -31,6 +31,8 @@ export async function handleEnd(
 	let tag: string | undefined;
 	let messageTs: string | undefined;
 	let msgChannelId: string | undefined;
+	let totalPauseDuration = 0;
+	let wasPaused = false;
 	try {
 		const parsed = JSON.parse(checkIn);
 		if (typeof parsed === 'object' && parsed.time) {
@@ -40,6 +42,11 @@ export async function handleEnd(
 			tag = parsed.tag;
 			messageTs = parsed.messageTs;
 			msgChannelId = parsed.channelId;
+			totalPauseDuration = parsed.totalPauseDuration || 0;
+			if (parsed.pausedAt) {
+				totalPauseDuration += now - parsed.pausedAt;
+				wasPaused = true;
+			}
 		} else {
 			startTime = parseInt(checkIn);
 		}
@@ -47,7 +54,7 @@ export async function handleEnd(
 		startTime = parseInt(checkIn);
 	}
 
-	let duration = now - startTime;
+	let duration = now - startTime - totalPauseDuration;
 
 	// 6시간 초과 + 시간 입력 없으면 경고 (본인에게만)
 	if (duration > MAX_AUTO_DURATION && !text) {
@@ -75,6 +82,7 @@ export async function handleEnd(
 	if (label) session.label = label;
 	if (checked) session.checked = checked;
 	if (tag) session.tag = tag;
+	if (totalPauseDuration > 0) session.pauseDuration = totalPauseDuration;
 	sessions.push(session);
 	await env.STUDY_KV.put(sessionsKey, JSON.stringify(sessions));
 
@@ -107,8 +115,9 @@ export async function handleEnd(
 	const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;
 	let publicMessage =
 		`:fairy-party: <@${userId}>님 수고했어요! (${formatTime(now)})\n` +
-		`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}\n` +
-		`:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}`;
+		`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}` +
+		(totalPauseDuration > 0 ? ` (휴식 ${formatDuration(totalPauseDuration)} 제외)` : '') +
+		`\n:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}`;
 	if (tagLabel) {
 		publicMessage += `\n:fairy-fire: 카테고리: ${tagLabel}`;
 	}
