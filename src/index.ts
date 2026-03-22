@@ -13,6 +13,8 @@ import {
 	handleExport,
 	handlePattern,
 	handleCheer,
+	handlePause,
+	handleResume,
 } from './commands';
 import { reply } from './utils/slack';
 import { handleLanding } from './pages/landing/index';
@@ -72,9 +74,13 @@ export default {
 				return handleExport(env, teamId, userId, channelId, text);
 			case '/pattern':
 				return handlePattern(env, teamId, userId, text);
-			case '/cheer':
-				return handleCheer(env, teamId, userId, channelId, text);
-			default:
+		case '/cheer':
+			return handleCheer(env, teamId, userId, channelId, text);
+		case '/pause':
+			return handlePause(env, teamId, userId, channelId);
+		case '/resume':
+			return handleResume(env, teamId, userId, channelId);
+		default:
 				return reply('알 수 없는 명령어예요.');
 		}
 	},

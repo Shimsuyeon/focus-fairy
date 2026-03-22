@@ -26,13 +26,22 @@ export async function handleStart(
 
 	if (existing) {
 		let startTime: number;
+		let isPaused = false;
 		try {
 			const parsed = JSON.parse(existing);
-			startTime = typeof parsed === 'object' && parsed.time ? parsed.time : parseInt(existing);
+			if (typeof parsed === 'object' && parsed.time) {
+				startTime = parsed.time;
+				isPaused = !!parsed.pausedAt;
+			} else {
+				startTime = parseInt(existing);
+			}
 		} catch {
 			startTime = parseInt(existing);
 		}
 		const elapsed = formatDuration(now - startTime);
+		if (isPaused) {
+			return replyEphemeral(`:fairy-moon: 일시정지 중이에요! /resume으로 다시 시작하거나 /end로 종료해주세요 (${elapsed} 경과)`);
+		}
 		return replyEphemeral(`이미 집중 중이에요! 요정이 지켜보고 있어요 :fairy-hourglass: (${elapsed} 경과)`);
 	}
 
@@ -100,13 +109,22 @@ async function handleStartPlan(
 	const existing = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
 	if (existing) {
 		let startTime: number;
+		let isPaused = false;
 		try {
 			const parsed = JSON.parse(existing);
-			startTime = typeof parsed === 'object' && parsed.time ? parsed.time : parseInt(existing);
+			if (typeof parsed === 'object' && parsed.time) {
+				startTime = parsed.time;
+				isPaused = !!parsed.pausedAt;
+			} else {
+				startTime = parseInt(existing);
+			}
 		} catch {
 			startTime = parseInt(existing);
 		}
 		const elapsed = formatDuration(Date.now() - startTime);
+		if (isPaused) {
+			return replyEphemeral(`:fairy-moon: 일시정지 중이에요! /resume으로 다시 시작하거나 /end로 종료해주세요 (${elapsed} 경과)`);
+		}
 		return replyEphemeral(`이미 집중 중이에요! 요정이 지켜보고 있어요 :fairy-hourglass: (${elapsed} 경과)`);
 	}
 
