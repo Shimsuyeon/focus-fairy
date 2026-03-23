@@ -62,7 +62,7 @@ export async function handleEnd(
 			`:fairy-zzz: ${formatDuration(duration)} 기록 예정!\n` +
 			`실제 집중 시간과 다르다면 요정이 고쳐드릴게요\n`;
 		if (totalPauseDuration > 0) {
-			warningMsg += `:fairy-moon: 기록된 휴식 시간: ${formatDuration(totalPauseDuration)} (이미 차감됨)\n`;
+			warningMsg += `:fairy-moon: 휴식 시간 ${formatDuration(totalPauseDuration)}은 제외했어요!\n`;
 		}
 		warningMsg += `\n👉 이렇게 입력해보세요: /end 2시간 30분`;
 		return replyEphemeral(warningMsg);
