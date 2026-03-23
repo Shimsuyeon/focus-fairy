@@ -58,12 +58,11 @@ export async function handleEnd(
 
 	// 6시간 초과 + 시간 입력 없으면 경고 (본인에게만)
 	if (duration > MAX_AUTO_DURATION && !text) {
-		let warningMsg =
-			`:fairy-zzz: ${formatDuration(duration)} 기록 예정!\n` +
-			`실제 집중 시간과 다르다면 요정이 고쳐드릴게요\n`;
+		let warningMsg = `:fairy-zzz: ${formatDuration(duration)} 기록 예정!`;
 		if (totalPauseDuration > 0) {
-			warningMsg += `:fairy-moon: 휴식 시간 ${formatDuration(totalPauseDuration)}은 제외했어요!\n`;
+			warningMsg += ` (중간 휴식 ${formatDuration(totalPauseDuration)}을 제외했어요!)`;
 		}
+		warningMsg += `\n실제 집중 시간과 다르다면 요정이 고쳐드릴게요\n`;
 		warningMsg += `\n👉 이렇게 입력해보세요: /end 2시간 30분`;
 		return replyEphemeral(warningMsg);
 	}
