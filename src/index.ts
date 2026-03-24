@@ -16,6 +16,7 @@ import {
 	handlePause,
 	handleResume,
 	handleSettings,
+	handleHelp,
 } from './commands';
 import { reply } from './utils/slack';
 import { handleLanding } from './pages/landing/index';
@@ -83,6 +84,8 @@ export default {
 			return handleResume(env, teamId, userId, channelId);
 		case '/settings':
 			return handleSettings(env, teamId, triggerId);
+		case '/help':
+			return handleHelp(env, teamId, triggerId);
 		default:
 				return reply('알 수 없는 명령어예요.');
 		}
