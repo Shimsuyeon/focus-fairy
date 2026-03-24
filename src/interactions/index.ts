@@ -7,6 +7,7 @@ import { postMessage, updateMessage, getBotToken, postEphemeral } from '../utils
 import { formatTime } from '../utils/format';
 import { getTodayKey } from '../utils/date';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
+import { completeEndSession } from '../commands/end';
 
 interface SlackBlock {
 	type: string;
@@ -83,6 +84,10 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env): P
 
 	if (actionId?.startsWith('toggle_check_')) {
 		return handleToggleCheck(payload, env);
+	}
+
+	if (actionId === 'confirm_end_duration') {
+		return handleConfirmEndDuration(payload, env);
 	}
 
 	return new Response('', { status: 200 });
@@ -493,6 +498,53 @@ async function handleToggleCheck(payload: SlackInteractionPayload, env: Env): Pr
 	const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;
 	const updatedBlocks = buildChecklistBlocks(userId, startTime, items, checked, tagLabel);
 	await updateMessage(env, user.team_id, channel.id, message.ts, message.text, updatedBlocks);
+
+	return new Response('', { status: 200 });
+}
+
+/** "그대로 기록하기" 버튼 클릭 → 세션 종료 처리 */
+async function handleConfirmEndDuration(payload: SlackInteractionPayload, env: Env): Promise<Response> {
+	const { user, actions } = payload;
+	if (!actions?.[0]?.value) {
+		return new Response('', { status: 200 });
+	}
+
+	const { channelId, duration } = JSON.parse(actions[0].value);
+	const teamId = user.team_id;
+	const userId = user.id;
+
+	const checkIn = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
+	if (!checkIn) {
+		await postEphemeral(env, teamId, channelId, userId, ':fairy-zzz: 이미 종료된 세션이에요!');
+		return new Response('', { status: 200 });
+	}
+
+	const now = Date.now();
+	let checkinData: Record<string, unknown>;
+	try {
+		const parsed = JSON.parse(checkIn);
+		checkinData = typeof parsed === 'object' && parsed.time ? parsed : { time: parseInt(checkIn) };
+	} catch {
+		checkinData = { time: parseInt(checkIn) };
+	}
+
+	let totalPauseDuration = (checkinData.totalPauseDuration as number) || 0;
+	if (checkinData.pausedAt) {
+		totalPauseDuration += now - (checkinData.pausedAt as number);
+	}
+
+	const checkin = {
+		startTime: checkinData.time as number,
+		label: checkinData.label as string | undefined,
+		checked: checkinData.checked as boolean[] | undefined,
+		tag: checkinData.tag as string | undefined,
+		messageTs: checkinData.messageTs as string | undefined,
+		msgChannelId: checkinData.channelId as string | undefined,
+		totalPauseDuration,
+	};
+
+	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin);
+	await postEphemeral(env, teamId, channelId, userId, `:fairy-party: ${durationLabel} 기록 완료!`);
 
 	return new Response('', { status: 200 });
 }
