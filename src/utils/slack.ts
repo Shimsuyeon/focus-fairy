@@ -195,21 +195,20 @@ export async function lookupUserByName(env: Env, teamId: string, username: strin
 	}
 }
 
-/** 사용자 이름 캐시 (요청당 메모리 캐시) */
-const userNameCache = new Map<string, string>();
+/** 사용자 정보 캐시 (요청당 메모리 캐시) */
+const userInfoCache = new Map<string, { name: string; tz: string }>();
 
-/** Slack API로 사용자 display name 조회 */
-export async function getUserName(env: Env, teamId: string, userId: string): Promise<string> {
-	// 캐시 확인
+/** Slack API로 사용자 정보 조회 (이름 + 타임존) */
+async function fetchUserInfo(env: Env, teamId: string, userId: string): Promise<{ name: string; tz: string }> {
 	const cacheKey = `${teamId}:${userId}`;
-	if (userNameCache.has(cacheKey)) {
-		return userNameCache.get(cacheKey)!;
+	if (userInfoCache.has(cacheKey)) {
+		return userInfoCache.get(cacheKey)!;
 	}
+
+	const defaults = { name: userId, tz: 'Asia/Seoul' };
 
 	const token = await getBotToken(env, teamId);
-	if (!token) {
-		return userId;
-	}
+	if (!token) return defaults;
 
 	try {
 		const response = await fetch(`https://slack.com/api/users.info?user=${userId}`, {
@@ -222,17 +221,29 @@ export async function getUserName(env: Env, teamId: string, userId: string): Pro
 		const data = (await response.json()) as SlackUserResponse;
 
 		if (data.ok && data.user) {
-			// display_name이 있으면 사용, 없으면 real_name, 그것도 없으면 name
 			const name = data.user.profile?.display_name || data.user.real_name || data.user.name || userId;
-			userNameCache.set(cacheKey, name);
-			return name;
+			const tz = data.user.tz || 'Asia/Seoul';
+			const info = { name, tz };
+			userInfoCache.set(cacheKey, info);
+			return info;
 		}
 	} catch (error) {
 		console.error('Failed to fetch user info:', error);
 	}
 
-	// 실패 시 userId 그대로 반환
-	return userId;
+	return defaults;
+}
+
+/** Slack API로 사용자 display name 조회 */
+export async function getUserName(env: Env, teamId: string, userId: string): Promise<string> {
+	const info = await fetchUserInfo(env, teamId, userId);
+	return info.name;
+}
+
+/** Slack API로 사용자 타임존 조회 */
+export async function getUserTimezone(env: Env, teamId: string, userId: string): Promise<string> {
+	const info = await fetchUserInfo(env, teamId, userId);
+	return info.tz;
 }
 
 /** 여러 사용자 이름을 한번에 조회 */
@@ -253,6 +264,7 @@ interface SlackUserResponse {
 	user?: {
 		name?: string;
 		real_name?: string;
+		tz?: string;
 		profile?: {
 			display_name?: string;
 		};

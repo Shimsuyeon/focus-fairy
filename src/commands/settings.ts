@@ -3,16 +3,87 @@
  * 워크스페이스 설정 모달
  */
 
-import { replyEphemeral, getBotToken } from '../utils/slack';
+import { replyEphemeral, getBotToken, getUserTimezone } from '../utils/slack';
 import { MAX_AUTO_DURATION } from '../constants/messages';
+
+export type TimezoneLabelMode = 'auto' | 'always' | 'never';
 
 export interface WorkspaceSettings {
 	maxAutoDuration: number;
+	defaultTimezone: string;
+	timezoneLabelMode: TimezoneLabelMode;
+	mixedTimezones: boolean;
 }
 
 const DEFAULT_SETTINGS: WorkspaceSettings = {
 	maxAutoDuration: MAX_AUTO_DURATION,
+	defaultTimezone: 'Asia/Seoul',
+	timezoneLabelMode: 'auto',
+	mixedTimezones: false,
 };
+
+const COMMON_TIMEZONES = [
+	{ value: 'Asia/Seoul', label: 'Asia/Seoul (KST)' },
+	{ value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST)' },
+	{ value: 'Asia/Shanghai', label: 'Asia/Shanghai (CST)' },
+	{ value: 'America/New_York', label: 'America/New_York (EST)' },
+	{ value: 'America/Chicago', label: 'America/Chicago (CST)' },
+	{ value: 'America/Denver', label: 'America/Denver (MST)' },
+	{ value: 'America/Los_Angeles', label: 'America/Los_Angeles (PST)' },
+	{ value: 'Europe/London', label: 'Europe/London (GMT)' },
+	{ value: 'Europe/Berlin', label: 'Europe/Berlin (CET)' },
+	{ value: 'Pacific/Auckland', label: 'Pacific/Auckland (NZST)' },
+];
+
+const LABEL_MODE_OPTIONS = [
+	{ value: 'auto', label: '자동 — 다른 시간대 유저 감지 시 표시' },
+	{ value: 'always', label: '항상 표시' },
+	{ value: 'never', label: '표시 안 함' },
+];
+
+/** 타임존 라벨을 표시할지 판단 */
+export function shouldShowTimezoneLabel(settings: WorkspaceSettings): boolean {
+	switch (settings.timezoneLabelMode) {
+		case 'always': return true;
+		case 'never': return false;
+		case 'auto': return settings.mixedTimezones;
+		default: return false;
+	}
+}
+
+/** 유저의 타임존 + 라벨 표시 여부를 한번에 조회 */
+export async function getUserTimezoneInfo(
+	env: Env,
+	teamId: string,
+	userId: string
+): Promise<{ timezone: string; showLabel: boolean }> {
+	const [userTz, settings] = await Promise.all([
+		getUserTimezone(env, teamId, userId),
+		getWorkspaceSettings(env, teamId),
+	]);
+	await checkAndUpdateMixedTimezones(env, teamId, userTz);
+	return { timezone: userTz, showLabel: shouldShowTimezoneLabel(settings) };
+}
+
+/** 유저 타임존이 워크스페이스 기본과 다르면 mixedTimezones 플래그 설정 */
+export async function checkAndUpdateMixedTimezones(
+	env: Env,
+	teamId: string,
+	userTimezone: string
+): Promise<void> {
+	const settings = await getWorkspaceSettings(env, teamId);
+	if (settings.mixedTimezones) return;
+	if (userTimezone !== settings.defaultTimezone) {
+		const settingsKey = `${teamId}:settings`;
+		let raw: Record<string, unknown> = {};
+		try {
+			const existing = await env.STUDY_KV.get(settingsKey);
+			if (existing) raw = JSON.parse(existing);
+		} catch {}
+		raw.mixedTimezones = true;
+		await env.STUDY_KV.put(settingsKey, JSON.stringify(raw));
+	}
+}
 
 /** KV에서 워크스페이스 설정 조회 */
 export async function getWorkspaceSettings(env: Env, teamId: string): Promise<WorkspaceSettings> {
@@ -41,6 +112,8 @@ export async function handleSettings(
 
 	const settings = await getWorkspaceSettings(env, teamId);
 	const currentHours = String(settings.maxAutoDuration / (60 * 60 * 1000));
+	const currentTz = settings.defaultTimezone;
+	const currentLabelMode = settings.timezoneLabelMode;
 
 	const modal = {
 		trigger_id: triggerId,
@@ -62,6 +135,42 @@ export async function handleSettings(
 						placeholder: { type: 'plain_text', text: '6' },
 					},
 					hint: { type: 'plain_text', text: '이 시간을 초과하면 /end 시 확인 버튼이 표시됩니다 (1~24시간)' },
+				},
+				{
+					type: 'input',
+					block_id: 'timezone_block',
+					label: { type: 'plain_text', text: '🌏 기본 시간대' },
+					element: {
+						type: 'static_select',
+						action_id: 'timezone_select',
+						initial_option: {
+							text: { type: 'plain_text', text: COMMON_TIMEZONES.find(t => t.value === currentTz)?.label || currentTz },
+							value: currentTz,
+						},
+						options: COMMON_TIMEZONES.map(tz => ({
+							text: { type: 'plain_text', text: tz.label },
+							value: tz.value,
+						})),
+					},
+					hint: { type: 'plain_text', text: '팀 집계(/today, /weekly)에 사용되는 기준 시간대' },
+				},
+				{
+					type: 'input',
+					block_id: 'tz_label_block',
+					label: { type: 'plain_text', text: '🏷️ 시간대 라벨 표시' },
+					element: {
+						type: 'static_select',
+						action_id: 'tz_label_select',
+						initial_option: {
+							text: { type: 'plain_text', text: LABEL_MODE_OPTIONS.find(o => o.value === currentLabelMode)?.label || '자동' },
+							value: currentLabelMode,
+						},
+						options: LABEL_MODE_OPTIONS.map(opt => ({
+							text: { type: 'plain_text', text: opt.label },
+							value: opt.value,
+						})),
+					},
+					hint: { type: 'plain_text', text: '메시지에 시간대(KST, EST 등)를 표시할지 설정' },
 				},
 			],
 		},

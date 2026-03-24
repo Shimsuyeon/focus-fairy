@@ -6,6 +6,7 @@ import { reply, replyEphemeral, postMessage, postMessageWithBlocks, getBotToken 
 import { formatTime, formatDuration } from '../utils/format';
 import { getTodayKey } from '../utils/date';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
+import { getUserTimezoneInfo } from './settings';
 
 const RESERVED_SUBCOMMANDS = ['plan'];
 
@@ -56,7 +57,8 @@ export async function handleStart(
 		await env.STUDY_KV.put(`${teamId}:today:${todayKey}`, JSON.stringify(todayList));
 	}
 
-	let publicMessage = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now)})`;
+	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
+	let publicMessage = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now, tzInfo.timezone, tzInfo.showLabel)})`;
 	if (label) {
 		publicMessage += `\n:fairy-sprout: 계획: ${label}`;
 	}

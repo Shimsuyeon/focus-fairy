@@ -2,15 +2,32 @@
  * 포맷팅 유틸리티
  */
 
-/** 타임스탬프를 한국 시간 문자열로 변환 */
-export function formatTime(ts: number): string {
-	return new Date(ts).toLocaleString('ko-KR', {
+const TZ_LABELS: Record<string, string> = {
+	'Asia/Seoul': 'KST',
+	'Asia/Tokyo': 'JST',
+	'Asia/Shanghai': 'CST',
+	'America/New_York': 'ET',
+	'America/Chicago': 'CT',
+	'America/Denver': 'MT',
+	'America/Los_Angeles': 'PT',
+	'Europe/London': 'GMT',
+	'Europe/Berlin': 'CET',
+	'Pacific/Auckland': 'NZST',
+};
+
+/** 타임스탬프를 유저 타임존 기준 문자열로 변환 */
+export function formatTime(ts: number, timezone?: string, showLabel?: boolean): string {
+	const tz = timezone || 'Asia/Seoul';
+	const timeStr = new Date(ts).toLocaleString('ko-KR', {
 		month: 'short',
 		day: 'numeric',
 		hour: '2-digit',
 		minute: '2-digit',
-		timeZone: 'Asia/Seoul',
+		timeZone: tz,
 	});
+	if (!showLabel) return timeStr;
+	const tzLabel = TZ_LABELS[tz] || tz.split('/').pop()?.replace('_', ' ') || tz;
+	return `${timeStr} (${tzLabel})`;
 }
 
 /** 밀리초를 "X시간 Y분" 형식으로 변환 */
