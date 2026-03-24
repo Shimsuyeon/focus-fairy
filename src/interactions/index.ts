@@ -65,6 +65,8 @@ async function handleViewSubmission(payload: SlackInteractionPayload, env: Env):
 			return handleButtonPlanSubmission(user.id, user.team_id, view, env);
 		case 'edit_plan_modal':
 			return handleEditPlanSubmission(user.id, user.team_id, view, env);
+		case 'settings_modal':
+			return handleSettingsSubmission(user.id, user.team_id, view, env);
 		default:
 			return new Response('', { status: 200 });
 	}
@@ -498,6 +500,38 @@ async function handleToggleCheck(payload: SlackInteractionPayload, env: Env): Pr
 	const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;
 	const updatedBlocks = buildChecklistBlocks(userId, startTime, items, checked, tagLabel);
 	await updateMessage(env, user.team_id, channel.id, message.ts, message.text, updatedBlocks);
+
+	return new Response('', { status: 200 });
+}
+
+/** 설정 모달 제출 핸들러 */
+async function handleSettingsSubmission(
+	userId: string,
+	teamId: string,
+	view: NonNullable<SlackInteractionPayload['view']>,
+	env: Env
+): Promise<Response> {
+	const hoursStr = view.state.values['max_duration_block']?.['max_duration_input']?.value?.trim();
+	const hours = parseFloat(hoursStr || '');
+
+	if (isNaN(hours) || hours < 1 || hours > 24) {
+		return new Response(JSON.stringify({
+			response_action: 'errors',
+			errors: { max_duration_block: '1~24 사이의 숫자를 입력해주세요' },
+		}), { headers: { 'Content-Type': 'application/json' } });
+	}
+
+	const maxAutoDuration = Math.round(hours * 60 * 60 * 1000);
+
+	const settingsKey = `${teamId}:settings`;
+	let settings: Record<string, unknown> = {};
+	try {
+		const raw = await env.STUDY_KV.get(settingsKey);
+		if (raw) settings = JSON.parse(raw);
+	} catch {}
+
+	settings.maxAutoDuration = maxAutoDuration;
+	await env.STUDY_KV.put(settingsKey, JSON.stringify(settings));
 
 	return new Response('', { status: 200 });
 }
