@@ -8,6 +8,7 @@ import { formatTime } from '../utils/format';
 import { getTodayKey } from '../utils/date';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
 import { completeEndSession } from '../commands/end';
+import { getUserTimezoneInfo } from '../commands/settings';
 
 interface SlackBlock {
 	type: string;
@@ -213,8 +214,9 @@ async function handleStartPlanSubmission(
 		? '\n' + lines.map((l: string) => `• ${l.trim()}`).join('\n')
 		: ` ${planText}`;
 
+	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
 	const publicMessage =
-		`:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now)})` +
+		`:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now, tzInfo.timezone, tzInfo.showLabel)})` +
 		`\n:fairy-sprout: 계획:${planDisplay}` +
 		`\n:fairy-fire: 카테고리: ${tagLabel}`;
 
@@ -262,8 +264,9 @@ async function handleButtonPlanSubmission(
 		const initialChecked = new Array(items.length).fill(false);
 		const checkinData = JSON.stringify({ time: startTime, label: planText, checked: initialChecked, tag, messageTs, channelId });
 		await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
-		const blocks = buildChecklistBlocks(userId, startTime, items, new Array(items.length).fill(false), tagLabel);
-		const fallbackText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime)})\n:fairy-sprout: 계획: ${items.join(', ')}`;
+		const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
+		const blocks = buildChecklistBlocks(userId, startTime, items, new Array(items.length).fill(false), tagLabel, tzInfo);
+		const fallbackText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime, tzInfo.timezone, tzInfo.showLabel)})\n:fairy-sprout: 계획: ${items.join(', ')}`;
 
 		await updateMessage(env, teamId, channelId, messageTs, fallbackText, blocks);
 	}
@@ -415,8 +418,9 @@ async function handleEditPlanSubmission(
 	const checkinData = JSON.stringify({ time: startTime, label: planText, checked: initialChecked, tag, messageTs, channelId });
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
 
-	const blocks = buildChecklistBlocks(userId, startTime, items, initialChecked, tagLabel);
-	const fallbackText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime)})\n:fairy-sprout: 계획: ${items.join(', ')}`;
+	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
+	const blocks = buildChecklistBlocks(userId, startTime, items, initialChecked, tagLabel, tzInfo);
+	const fallbackText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime, tzInfo.timezone, tzInfo.showLabel)})\n:fairy-sprout: 계획: ${items.join(', ')}`;
 
 	await updateMessage(env, teamId, channelId, messageTs, fallbackText, blocks);
 
@@ -498,7 +502,8 @@ async function handleToggleCheck(payload: SlackInteractionPayload, env: Env): Pr
 	await env.STUDY_KV.put(`${user.team_id}:checkin:${userId}`, checkinData);
 
 	const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;
-	const updatedBlocks = buildChecklistBlocks(userId, startTime, items, checked, tagLabel);
+	const tzInfo = await getUserTimezoneInfo(env, user.team_id, userId);
+	const updatedBlocks = buildChecklistBlocks(userId, startTime, items, checked, tagLabel, tzInfo);
 	await updateMessage(env, user.team_id, channel.id, message.ts, message.text, updatedBlocks);
 
 	return new Response('', { status: 200 });
@@ -522,6 +527,8 @@ async function handleSettingsSubmission(
 	}
 
 	const maxAutoDuration = Math.round(hours * 60 * 60 * 1000);
+	const defaultTimezone = view.state.values['timezone_block']?.['timezone_select']?.selected_option?.value || 'Asia/Seoul';
+	const timezoneLabelMode = view.state.values['tz_label_block']?.['tz_label_select']?.selected_option?.value || 'auto';
 
 	const settingsKey = `${teamId}:settings`;
 	let settings: Record<string, unknown> = {};
@@ -531,6 +538,8 @@ async function handleSettingsSubmission(
 	} catch {}
 
 	settings.maxAutoDuration = maxAutoDuration;
+	settings.defaultTimezone = defaultTimezone;
+	settings.timezoneLabelMode = timezoneLabelMode;
 	await env.STUDY_KV.put(settingsKey, JSON.stringify(settings));
 
 	return new Response('', { status: 200 });
@@ -577,18 +586,19 @@ async function handleConfirmEndDuration(payload: SlackInteractionPayload, env: E
 		totalPauseDuration,
 	};
 
-	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin);
+	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
+	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin, tzInfo);
 	await postEphemeral(env, teamId, channelId, userId, `:fairy-party: ${durationLabel} 기록 완료!`);
 
 	return new Response('', { status: 200 });
 }
 
 /** 체크리스트 블록 생성 */
-function buildChecklistBlocks(userId: string, startTime: number, items: string[], checked: boolean[], tagLabel?: string): SlackBlock[] {
+function buildChecklistBlocks(userId: string, startTime: number, items: string[], checked: boolean[], tagLabel?: string, tzInfo?: { timezone: string; showLabel: boolean }): SlackBlock[] {
 	const doneCount = checked.filter(Boolean).length;
 	const totalCount = items.length;
 
-	const headerText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime)})` +
+	const headerText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(startTime, tzInfo?.timezone, tzInfo?.showLabel)})` +
 		(tagLabel ? `\n:fairy-fire: 카테고리: ${tagLabel}` : '');
 
 	const blocks: SlackBlock[] = [
@@ -656,11 +666,11 @@ function buildChecklistBlocks(userId: string, startTime: number, items: string[]
 }
 
 /** 종료된 체크리스트 블록 (버튼 없는 최종 상태) */
-export function buildFinalChecklistBlocks(userId: string, startTime: number, items: string[], checked: boolean[], tagLabel?: string): SlackBlock[] {
+export function buildFinalChecklistBlocks(userId: string, startTime: number, items: string[], checked: boolean[], tagLabel?: string, tzInfo?: { timezone: string; showLabel: boolean }): SlackBlock[] {
 	const doneCount = checked.filter(Boolean).length;
 	const totalCount = items.length;
 
-	const headerText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! (${formatTime(startTime)})` +
+	const headerText = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! (${formatTime(startTime, tzInfo?.timezone, tzInfo?.showLabel)})` +
 		(tagLabel ? `\n:fairy-fire: 카테고리: ${tagLabel}` : '');
 
 	const blocks: SlackBlock[] = [

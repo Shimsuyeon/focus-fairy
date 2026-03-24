@@ -9,7 +9,7 @@ import { getDateKey, isCurrentWeek } from '../utils/date';
 import { getWeekTotalForDate } from '../services/session';
 import { ENCOURAGEMENTS, SESSION_TAGS } from '../constants/messages';
 import { buildFinalChecklistBlocks } from '../interactions';
-import { getWorkspaceSettings } from './settings';
+import { getWorkspaceSettings, getUserTimezoneInfo } from './settings';
 
 interface CheckinData {
 	startTime: number;
@@ -60,10 +60,13 @@ export async function completeEndSession(
 	userId: string,
 	channelId: string,
 	duration: number,
-	checkin: CheckinData
+	checkin: CheckinData,
+	tzInfo?: { timezone: string; showLabel: boolean }
 ): Promise<string> {
 	const now = Date.now();
 	const { startTime, label, checked, tag, messageTs, msgChannelId, totalPauseDuration } = checkin;
+	const tz = tzInfo?.timezone;
+	const showLabel = tzInfo?.showLabel;
 
 	const sessionDate = getDateKey(startTime);
 	const sessionsKey = `${teamId}:sessions:${sessionDate}`;
@@ -85,7 +88,7 @@ export async function completeEndSession(
 	if (messageTs && msgChannelId && label && checked) {
 		const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;
 		const items = label.split('\n').filter((l: string) => l.trim()).map((l: string) => l.trim());
-		const finalBlocks = buildFinalChecklistBlocks(userId, startTime, items, checked, tagLabel);
+		const finalBlocks = buildFinalChecklistBlocks(userId, startTime, items, checked, tagLabel, { timezone: tz || 'Asia/Seoul', showLabel: showLabel || false });
 		await updateMessage(env, teamId, msgChannelId, messageTs, '', finalBlocks);
 	}
 
@@ -95,7 +98,7 @@ export async function completeEndSession(
 
 	const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;
 	let publicMessage =
-		`:fairy-party: <@${userId}>님 수고했어요! (${formatTime(now)})\n` +
+		`:fairy-party: <@${userId}>님 수고했어요! (${formatTime(now, tz, showLabel)})\n` +
 		`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}` +
 		(totalPauseDuration > 0 ? ` (휴식 ${formatDuration(totalPauseDuration)} 제외)` : '') +
 		`\n:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}`;
@@ -136,6 +139,7 @@ export async function handleEnd(
 	let duration = now - checkin.startTime - checkin.totalPauseDuration;
 
 	const settings = await getWorkspaceSettings(env, teamId);
+	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
 
 	// 임계값 초과 + 시간 입력 없으면 경고 + 확인 버튼 (본인에게만)
 	if (duration > settings.maxAutoDuration && !text) {
@@ -184,6 +188,6 @@ export async function handleEnd(
 		duration = parsed;
 	}
 
-	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin);
+	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin, tzInfo);
 	return replyEphemeral(`:fairy-party: ${durationLabel} 기록 완료!`);
 }
