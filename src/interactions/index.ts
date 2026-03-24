@@ -15,7 +15,7 @@ interface SlackBlock {
 	block_id?: string;
 	text?: { type: string; text: string };
 	accessory?: { type: string; text?: { type: string; text: string }; action_id?: string; value?: string; style?: string };
-	elements?: Array<{ type: string; text?: { type: string; text: string }; action_id?: string; value?: string }>;
+	elements?: Array<{ type: string; text?: string | { type: string; text: string }; action_id?: string; value?: string }>;
 }
 
 interface SlackInteractionPayload {
@@ -29,7 +29,11 @@ interface SlackInteractionPayload {
 		callback_id: string;
 		private_metadata: string;
 		state: {
-			values: Record<string, Record<string, { value: string }>>;
+			values: Record<string, Record<string, {
+				value?: string;
+				selected_option?: { value: string };
+				selected_time?: string;
+			}>>;
 		};
 	};
 }
@@ -529,6 +533,19 @@ async function handleSettingsSubmission(
 	const maxAutoDuration = Math.round(hours * 60 * 60 * 1000);
 	const defaultTimezone = view.state.values['timezone_block']?.['timezone_select']?.selected_option?.value || 'Asia/Seoul';
 	const timezoneLabelMode = view.state.values['tz_label_block']?.['tz_label_select']?.selected_option?.value || 'auto';
+	const lunchToggle = view.state.values['lunch_toggle_block']?.['lunch_toggle']?.selected_option?.value || 'off';
+	const lunchStart = view.state.values['lunch_start_block']?.['lunch_start_input']?.selected_time || '12:00';
+	const lunchEnd = view.state.values['lunch_end_block']?.['lunch_end_input']?.selected_time || '13:00';
+
+	if (lunchToggle === 'on' && lunchStart >= lunchEnd) {
+		return new Response(JSON.stringify({
+			response_action: 'errors',
+			errors: {
+				lunch_start_block: '시작 시간이 종료 시간보다 빨라야 합니다',
+				lunch_end_block: '종료 시간이 시작 시간보다 늦어야 합니다',
+			},
+		}), { headers: { 'Content-Type': 'application/json' } });
+	}
 
 	const settingsKey = `${teamId}:settings`;
 	let settings: Record<string, unknown> = {};
@@ -540,6 +557,9 @@ async function handleSettingsSubmission(
 	settings.maxAutoDuration = maxAutoDuration;
 	settings.defaultTimezone = defaultTimezone;
 	settings.timezoneLabelMode = timezoneLabelMode;
+	settings.lunchDeduction = lunchToggle === 'on';
+	settings.lunchStart = lunchStart;
+	settings.lunchEnd = lunchEnd;
 	await env.STUDY_KV.put(settingsKey, JSON.stringify(settings));
 
 	return new Response('', { status: 200 });
@@ -552,7 +572,8 @@ async function handleConfirmEndDuration(payload: SlackInteractionPayload, env: E
 		return new Response('', { status: 200 });
 	}
 
-	const { channelId, duration } = JSON.parse(actions[0].value);
+	const buttonData = JSON.parse(actions[0].value);
+	const { channelId, duration, lunchDeducted } = buttonData;
 	const teamId = user.team_id;
 	const userId = user.id;
 
@@ -576,6 +597,14 @@ async function handleConfirmEndDuration(payload: SlackInteractionPayload, env: E
 		totalPauseDuration += now - (checkinData.pausedAt as number);
 	}
 
+	let pausePeriods: Array<{ start: number; end: number }> = [];
+	if (Array.isArray(checkinData.pausePeriods)) {
+		pausePeriods = checkinData.pausePeriods as Array<{ start: number; end: number }>;
+	}
+	if (checkinData.pausedAt) {
+		pausePeriods = [...pausePeriods, { start: checkinData.pausedAt as number, end: now }];
+	}
+
 	const checkin = {
 		startTime: checkinData.time as number,
 		label: checkinData.label as string | undefined,
@@ -584,10 +613,11 @@ async function handleConfirmEndDuration(payload: SlackInteractionPayload, env: E
 		messageTs: checkinData.messageTs as string | undefined,
 		msgChannelId: checkinData.channelId as string | undefined,
 		totalPauseDuration,
+		pausePeriods,
 	};
 
 	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
-	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin, tzInfo);
+	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin, tzInfo, lunchDeducted || 0);
 	await postEphemeral(env, teamId, channelId, userId, `:fairy-party: ${durationLabel} 기록 완료!`);
 
 	return new Response('', { status: 200 });
