@@ -4,7 +4,7 @@
 
 import type { Session } from '../types';
 import { reply, replyEphemeral, postMessage, updateMessage, getUserName } from '../utils/slack';
-import { formatTime, formatDuration, parseDuration } from '../utils/format';
+import { formatTime, formatDuration, parseDuration, calcLunchDeduction } from '../utils/format';
 import { getDateKey, isCurrentWeek } from '../utils/date';
 import { getWeekTotalForDate } from '../services/session';
 import { ENCOURAGEMENTS, SESSION_TAGS } from '../constants/messages';
@@ -19,6 +19,7 @@ interface CheckinData {
 	messageTs?: string;
 	msgChannelId?: string;
 	totalPauseDuration: number;
+	pausePeriods: Array<{ start: number; end: number }>;
 }
 
 function parseCheckinData(checkIn: string, now: number): CheckinData {
@@ -29,6 +30,7 @@ function parseCheckinData(checkIn: string, now: number): CheckinData {
 	let messageTs: string | undefined;
 	let msgChannelId: string | undefined;
 	let totalPauseDuration = 0;
+	let pausePeriods: Array<{ start: number; end: number }> = [];
 
 	try {
 		const parsed = JSON.parse(checkIn);
@@ -40,8 +42,12 @@ function parseCheckinData(checkIn: string, now: number): CheckinData {
 			messageTs = parsed.messageTs;
 			msgChannelId = parsed.channelId;
 			totalPauseDuration = parsed.totalPauseDuration || 0;
+			if (Array.isArray(parsed.pausePeriods)) {
+				pausePeriods = parsed.pausePeriods;
+			}
 			if (parsed.pausedAt) {
 				totalPauseDuration += now - parsed.pausedAt;
+				pausePeriods = [...pausePeriods, { start: parsed.pausedAt, end: now }];
 			}
 		} else {
 			startTime = parseInt(checkIn);
@@ -50,7 +56,7 @@ function parseCheckinData(checkIn: string, now: number): CheckinData {
 		startTime = parseInt(checkIn);
 	}
 
-	return { startTime, label, checked, tag, messageTs, msgChannelId, totalPauseDuration };
+	return { startTime, label, checked, tag, messageTs, msgChannelId, totalPauseDuration, pausePeriods };
 }
 
 /** 세션 종료 핵심 로직 — /end 커맨드와 "그대로 기록하기" 버튼 공용 */
@@ -61,7 +67,8 @@ export async function completeEndSession(
 	channelId: string,
 	duration: number,
 	checkin: CheckinData,
-	tzInfo?: { timezone: string; showLabel: boolean }
+	tzInfo?: { timezone: string; showLabel: boolean },
+	lunchDeducted?: number
 ): Promise<string> {
 	const now = Date.now();
 	const { startTime, label, checked, tag, messageTs, msgChannelId, totalPauseDuration } = checkin;
@@ -97,10 +104,14 @@ export async function completeEndSession(
 	const randomMsg = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
 
 	const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;
+	const deductionParts: string[] = [];
+	if (totalPauseDuration > 0) deductionParts.push(`휴식 ${formatDuration(totalPauseDuration)}`);
+	if (lunchDeducted && lunchDeducted > 0) deductionParts.push(`점심 ${formatDuration(lunchDeducted)}`);
+	const deductionStr = deductionParts.length > 0 ? ` (${deductionParts.join(' + ')} 제외)` : '';
+
 	let publicMessage =
 		`:fairy-party: <@${userId}>님 수고했어요! (${formatTime(now, tz, showLabel)})\n` +
-		`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}` +
-		(totalPauseDuration > 0 ? ` (휴식 ${formatDuration(totalPauseDuration)} 제외)` : '') +
+		`:fairy-hourglass: 이번 세션: ${formatDuration(duration)}${deductionStr}` +
 		`\n:fairy-chart: ${weekLabel} 누적: ${formatDuration(weekTotal)}`;
 	if (tagLabel) {
 		publicMessage += `\n:fairy-fire: 카테고리: ${tagLabel}`;
@@ -141,15 +152,28 @@ export async function handleEnd(
 	const settings = await getWorkspaceSettings(env, teamId);
 	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
 
+	let lunchDeducted = 0;
+	if (settings.lunchDeduction) {
+		lunchDeducted = calcLunchDeduction(
+			checkin.startTime, now, tzInfo.timezone,
+			settings.lunchStart, settings.lunchEnd,
+			checkin.pausePeriods
+		);
+		duration -= lunchDeducted;
+	}
+
 	// 임계값 초과 + 시간 입력 없으면 경고 + 확인 버튼 (본인에게만)
 	if (duration > settings.maxAutoDuration && !text) {
 		let warningMsg = `:fairy-zzz: ${formatDuration(duration)} 기록 예정!`;
 		if (checkin.totalPauseDuration > 0) {
 			warningMsg += ` (중간 휴식 ${formatDuration(checkin.totalPauseDuration)}을 제외했어요!)`;
 		}
+		if (lunchDeducted > 0) {
+			warningMsg += `\n🍽️ 점심시간 ${formatDuration(lunchDeducted)} 자동 차감됨`;
+		}
 		warningMsg += `\n실제 집중 시간과 다르다면 요정이 고쳐드릴게요`;
 
-		const buttonValue = JSON.stringify({ channelId, duration });
+		const buttonValue = JSON.stringify({ channelId, duration, lunchDeducted });
 
 		return new Response(JSON.stringify({
 			response_type: 'ephemeral',
@@ -188,6 +212,6 @@ export async function handleEnd(
 		duration = parsed;
 	}
 
-	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin, tzInfo);
+	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin, tzInfo, lunchDeducted);
 	return replyEphemeral(`:fairy-party: ${durationLabel} 기록 완료!`);
 }

@@ -13,6 +13,9 @@ export interface WorkspaceSettings {
 	defaultTimezone: string;
 	timezoneLabelMode: TimezoneLabelMode;
 	mixedTimezones: boolean;
+	lunchDeduction: boolean;
+	lunchStart: string;
+	lunchEnd: string;
 }
 
 const DEFAULT_SETTINGS: WorkspaceSettings = {
@@ -20,6 +23,9 @@ const DEFAULT_SETTINGS: WorkspaceSettings = {
 	defaultTimezone: 'Asia/Seoul',
 	timezoneLabelMode: 'auto',
 	mixedTimezones: false,
+	lunchDeduction: false,
+	lunchStart: '12:00',
+	lunchEnd: '13:00',
 };
 
 const COMMON_TIMEZONES = [
@@ -114,6 +120,9 @@ export async function handleSettings(
 	const currentHours = String(settings.maxAutoDuration / (60 * 60 * 1000));
 	const currentTz = settings.defaultTimezone;
 	const currentLabelMode = settings.timezoneLabelMode;
+	const lunchEnabled = settings.lunchDeduction;
+	const lunchStart = settings.lunchStart;
+	const lunchEnd = settings.lunchEnd;
 
 	const modal = {
 		trigger_id: triggerId,
@@ -154,6 +163,52 @@ export async function handleSettings(
 					},
 					hint: { type: 'plain_text', text: '팀 집계(/today, /weekly)에 사용되는 기준 시간대' },
 				},
+				{ type: 'divider' },
+				{
+					type: 'section',
+					block_id: 'lunch_header',
+					text: { type: 'mrkdwn', text: '🍽️ *점심시간 자동 차감*' },
+				},
+				{
+					type: 'input',
+					block_id: 'lunch_toggle_block',
+					label: { type: 'plain_text', text: '점심시간 자동 차감' },
+					element: {
+						type: 'static_select',
+						action_id: 'lunch_toggle',
+						initial_option: lunchEnabled
+							? { text: { type: 'plain_text', text: 'ON — 점심시간 자동 차감' }, value: 'on' }
+							: { text: { type: 'plain_text', text: 'OFF — 사용 안 함' }, value: 'off' },
+						options: [
+							{ text: { type: 'plain_text', text: 'ON — 점심시간 자동 차감' }, value: 'on' },
+							{ text: { type: 'plain_text', text: 'OFF — 사용 안 함' }, value: 'off' },
+						],
+					},
+					hint: { type: 'plain_text', text: '세션이 점심시간을 걸치면 자동으로 차감합니다' },
+				},
+				{
+					type: 'input',
+					block_id: 'lunch_start_block',
+					label: { type: 'plain_text', text: '점심 시작' },
+					element: {
+						type: 'timepicker',
+						action_id: 'lunch_start_input',
+						initial_time: lunchStart,
+						placeholder: { type: 'plain_text', text: '12:00' },
+					},
+				},
+				{
+					type: 'input',
+					block_id: 'lunch_end_block',
+					label: { type: 'plain_text', text: '점심 끝' },
+					element: {
+						type: 'timepicker',
+						action_id: 'lunch_end_input',
+						initial_time: lunchEnd,
+						placeholder: { type: 'plain_text', text: '13:00' },
+					},
+				},
+				{ type: 'divider' },
 				{
 					type: 'input',
 					block_id: 'tz_label_block',

@@ -75,8 +75,12 @@ export async function handleResume(
 		return replyEphemeral(':fairy-wand: 일시정지 상태가 아니에요! 집중 중입니다 :fairy-hourglass:');
 	}
 
-	const pauseDuration = now - (data.pausedAt as number);
+	const pauseStart = data.pausedAt as number;
+	const pauseDuration = now - pauseStart;
 	data.totalPauseDuration = ((data.totalPauseDuration as number) || 0) + pauseDuration;
+	const periods = (data.pausePeriods as Array<{ start: number; end: number }>) || [];
+	periods.push({ start: pauseStart, end: now });
+	data.pausePeriods = periods;
 	delete data.pausedAt;
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, JSON.stringify(data));
 
