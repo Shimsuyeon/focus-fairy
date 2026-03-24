@@ -11,3 +11,4 @@ export { handleExport } from './export';
 export { handlePattern } from './pattern';
 export { handleCheer } from './cheer';
 export { handlePause, handleResume } from './pause';
+export { handleSettings } from './settings';

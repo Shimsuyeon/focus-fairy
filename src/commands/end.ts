@@ -7,8 +7,9 @@ import { reply, replyEphemeral, postMessage, updateMessage, getUserName } from '
 import { formatTime, formatDuration, parseDuration } from '../utils/format';
 import { getDateKey, isCurrentWeek } from '../utils/date';
 import { getWeekTotalForDate } from '../services/session';
-import { ENCOURAGEMENTS, MAX_AUTO_DURATION, SESSION_TAGS } from '../constants/messages';
+import { ENCOURAGEMENTS, SESSION_TAGS } from '../constants/messages';
 import { buildFinalChecklistBlocks } from '../interactions';
+import { getWorkspaceSettings } from './settings';
 
 interface CheckinData {
 	startTime: number;
@@ -134,8 +135,10 @@ export async function handleEnd(
 	const checkin = parseCheckinData(checkIn, now);
 	let duration = now - checkin.startTime - checkin.totalPauseDuration;
 
-	// 6시간 초과 + 시간 입력 없으면 경고 + 확인 버튼 (본인에게만)
-	if (duration > MAX_AUTO_DURATION && !text) {
+	const settings = await getWorkspaceSettings(env, teamId);
+
+	// 임계값 초과 + 시간 입력 없으면 경고 + 확인 버튼 (본인에게만)
+	if (duration > settings.maxAutoDuration && !text) {
 		let warningMsg = `:fairy-zzz: ${formatDuration(duration)} 기록 예정!`;
 		if (checkin.totalPauseDuration > 0) {
 			warningMsg += ` (중간 휴식 ${formatDuration(checkin.totalPauseDuration)}을 제외했어요!)`;
