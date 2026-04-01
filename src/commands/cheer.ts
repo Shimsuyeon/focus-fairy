@@ -126,9 +126,6 @@ async function sendCheer(
 	const posted = await postMessage(env, teamId, channelId, publicMessage);
 
 	if (posted) {
-		if (isAprilFoolsCheer) {
-			return new Response('', { status: 200 });
-		}
 		return replyEphemeral(`:fairy-coffee: 커피 ${actualCount}잔을 보냈어요! 남은 커피: ${remaining}/${DAILY_CHEER_LIMIT}`);
 	} else {
 		return replyEphemeral(':fairy-zzz: 응원 전송에 실패했어요. 봇이 채널에 초대되어 있는지 확인해주세요!');
