@@ -3,7 +3,7 @@
  * 모달 제출, 버튼 클릭 등 interactive component 이벤트 처리
  */
 
-import { postMessage, updateMessage, getBotToken, postEphemeral } from '../utils/slack';
+import { postMessage, postMessageWithBlocks, updateMessage, getBotToken, postEphemeral } from '../utils/slack';
 import { formatTime } from '../utils/format';
 import { getTodayKey } from '../utils/date';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
@@ -566,12 +566,30 @@ async function handleAprilFoolsAction(
 	}
 
 	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
-	let publicMessage = `:fairy-party: 만우절이에요! 오늘도 집중 화이팅! :fairy-party:\n:fairy-wand: <@${userId}>님이 집중을 시작했어요! (${formatTime(now, tzInfo.timezone, tzInfo.showLabel)})`;
+	const aprilFoolsLine = `:fairy-party: 만우절이에요! 오늘도 집중 화이팅! :fairy-party:\n`;
+	let publicMessage = `${aprilFoolsLine}:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now, tzInfo.timezone, tzInfo.showLabel)})`;
 	if (label) {
 		publicMessage += `\n:fairy-sprout: 계획: ${label}`;
+		await postMessage(env, teamId, channelId, publicMessage);
+	} else {
+		const blocks = [
+			{
+				type: 'section',
+				text: { type: 'mrkdwn', text: publicMessage },
+			},
+			{
+				type: 'actions',
+				elements: [
+					{
+						type: 'button',
+						text: { type: 'plain_text', text: ':fairy-sprout: 계획 추가' },
+						action_id: 'add_plan_button',
+					},
+				],
+			},
+		];
+		await postMessageWithBlocks(env, teamId, channelId, publicMessage, blocks);
 	}
-
-	await postMessage(env, teamId, channelId, publicMessage);
 
 	return new Response('', { status: 200 });
 }
