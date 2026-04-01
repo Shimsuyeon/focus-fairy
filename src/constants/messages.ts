@@ -41,3 +41,13 @@ export const DEFAULT_TAG = 'etc';
 /** 하루 응원 보내기 한도 */
 export const DAILY_CHEER_LIMIT = 5;
 
+/** 만우절 /cheer 대체 음료 메시지 */
+export const APRIL_FOOLS_DRINKS = [
+	'건강을 생각해 녹즙을 보냈어요',
+	'카페인 과다 섭취 방지를 위해 미숫가루를 보냈어요',
+	'커피가 품절이라 옥수수수염차를 보냈어요',
+	'건강검진 결과에 따라 양배추즙을 보냈어요',
+	'요정 판단 하에 쑥차를 보냈어요',
+	'커피 대신 할머니가 끓여주신 대추차를 보냈어요',
+] as const;
+
