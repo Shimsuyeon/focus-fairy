@@ -568,7 +568,7 @@ async function handleAprilFoolsAction(
 	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
 
 	// 만우절 메시지는 본인에게만 ephemeral로
-	await postEphemeral(env, teamId, channelId, userId, ':fairy-party: 만우절이에요! 오늘도 집중 화이팅! :fairy-party:');
+	await postEphemeral(env, teamId, channelId, userId, ':fairy-party: 만우절 농담~ 오늘도 집중 화이팅! :fairy-party:');
 
 	// 채널에는 기존과 동일한 시작 메시지
 	let publicMessage = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now, tzInfo.timezone, tzInfo.showLabel)})`;
