@@ -4,8 +4,8 @@
  */
 
 import { replyEphemeral, postMessage, lookupUserByName } from '../utils/slack';
-import { getTodayKey, getWeekRangeForDate } from '../utils/date';
-import { DAILY_CHEER_LIMIT, MEDALS } from '../constants/messages';
+import { getTodayKey, getWeekRangeForDate, isAprilFools } from '../utils/date';
+import { DAILY_CHEER_LIMIT, MEDALS, APRIL_FOOLS_DRINKS, APRIL_FOOLS_REASONS } from '../constants/messages';
 
 interface CheerLog {
 	from: string;
@@ -102,9 +102,18 @@ async function sendCheer(
 	const weeklyReceived = await getWeeklyReceivedCount(env, teamId, targetUserId);
 	const remaining = DAILY_CHEER_LIMIT - (sentCount + actualCount);
 
-	const coffeeEmojis = ':fairy-coffee:'.repeat(actualCount);
-	let publicMessage =
-		`${coffeeEmojis} <@${userId}>님이 <@${targetUserId}>님에게 커피 ${actualCount}잔을 보냈어요!`;
+	const allowedTeams = (env.APRIL_FOOLS_TEAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+	const isAprilFoolsCheer = isAprilFools() && allowedTeams.includes(teamId);
+
+	let publicMessage: string;
+	if (isAprilFoolsCheer) {
+		const drink = APRIL_FOOLS_DRINKS[Math.floor(Math.random() * APRIL_FOOLS_DRINKS.length)];
+		const reason = APRIL_FOOLS_REASONS[Math.floor(Math.random() * APRIL_FOOLS_REASONS.length)];
+		publicMessage = `:fairy-sprout: <@${userId}>님이 <@${targetUserId}>님에게 커피를 보냈지만,\n${reason} ${drink}(으)로 대체되었어요!`;
+	} else {
+		const coffeeEmojis = ':fairy-coffee:'.repeat(actualCount);
+		publicMessage = `${coffeeEmojis} <@${userId}>님이 <@${targetUserId}>님에게 커피 ${actualCount}잔을 보냈어요!`;
+	}
 	if (displayMessage) {
 		publicMessage += `\n💬 "${displayMessage}"`;
 	}

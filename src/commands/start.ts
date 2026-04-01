@@ -4,7 +4,7 @@
 
 import { reply, replyEphemeral, postMessage, postMessageWithBlocks, getBotToken } from '../utils/slack';
 import { formatTime, formatDuration } from '../utils/format';
-import { getTodayKey } from '../utils/date';
+import { getTodayKey, isAprilFools } from '../utils/date';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
 import { getUserTimezoneInfo } from './settings';
 
@@ -20,6 +20,17 @@ export async function handleStart(
 ): Promise<Response> {
 	if (text === 'plan') {
 		return handleStartPlan(env, teamId, userId, channelId, triggerId);
+	}
+
+	// 만우절 이벤트: 허용된 팀에만 Pro 모달 표시
+	if (isAprilFools() && triggerId) {
+		const allowedTeams = (env.APRIL_FOOLS_TEAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+		if (allowedTeams.includes(teamId)) {
+			const existing = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
+			if (!existing) {
+				return openAprilFoolsModal(env, teamId, channelId, text, triggerId);
+			}
+		}
 	}
 
 	const now = Date.now();
@@ -193,6 +204,84 @@ async function handleStartPlan(
 	const data = (await res.json()) as { ok: boolean; error?: string };
 	if (!data.ok) {
 		console.error('Failed to open modal:', data.error);
+		return replyEphemeral('모달을 열 수 없어요. 다시 시도해주세요!');
+	}
+
+	return new Response('', { status: 200 });
+}
+
+/** 만우절 Pro 모달 */
+async function openAprilFoolsModal(
+	env: Env,
+	teamId: string,
+	channelId: string,
+	text: string,
+	triggerId: string
+): Promise<Response> {
+	const token = await getBotToken(env, teamId);
+	if (!token) {
+		return replyEphemeral('봇 토큰을 찾을 수 없어요.');
+	}
+
+	const metadata = JSON.stringify({ channelId, text });
+
+	const modal = {
+		trigger_id: triggerId,
+		view: {
+			type: 'modal',
+			callback_id: 'april_fools_modal',
+			private_metadata: metadata,
+			notify_on_close: true,
+			title: { type: 'plain_text', text: '집중요정 Pro' },
+			submit: { type: 'plain_text', text: '구독하기 - 월 9,900원' },
+			close: { type: 'plain_text', text: '오늘만 무료체험' },
+			blocks: [
+				{
+					type: 'header',
+					text: { type: 'plain_text', text: ':fairy-wand: 집중요정 Pro 출시!' },
+				},
+				{
+					type: 'section',
+					text: {
+						type: 'mrkdwn',
+						text: '*무료 버전은 오늘부터 하루 1회만 사용 가능합니다.*\n\nPro 구독 시 다음 기능을 이용할 수 있어요:',
+					},
+				},
+				{
+					type: 'section',
+					text: {
+						type: 'mrkdwn',
+						text: ':fairy-fire: 무제한 집중 세션\n:fairy-sprout: AI 집중력 분석 리포트\n:fairy-party: 프리미엄 요정 이모지 팩\n:fairy-coffee: 자동 커피 배달 연동',
+					},
+				},
+				{
+					type: 'divider',
+				},
+				{
+					type: 'context',
+					elements: [
+						{
+							type: 'mrkdwn',
+							text: '구독은 언제든 해지할 수 있으며, 첫 달은 50% 할인됩니다.',
+						},
+					],
+				},
+			],
+		},
+	};
+
+	const res = await fetch('https://slack.com/api/views.open', {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${token}`,
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(modal),
+	});
+
+	const data = (await res.json()) as { ok: boolean; error?: string };
+	if (!data.ok) {
+		console.error('Failed to open april fools modal:', data.error);
 		return replyEphemeral('모달을 열 수 없어요. 다시 시도해주세요!');
 	}
 

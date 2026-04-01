@@ -41,3 +41,18 @@ export const DEFAULT_TAG = 'etc';
 /** 하루 응원 보내기 한도 */
 export const DAILY_CHEER_LIMIT = 5;
 
+/** 만우절 /cheer 대체 음료 */
+export const APRIL_FOOLS_DRINKS = [
+	'녹즙', '미숫가루', '옥수수수염차', '양배추즙', '쑥차', '할머니가 끓여주신 대추차',
+] as const;
+
+/** 만우절 /cheer 대체 사유 */
+export const APRIL_FOOLS_REASONS = [
+	'집중요정 판단 하에',
+	'요정 건강 위원회 심의 결과',
+	'집중요정 영양사의 추천으로',
+	'요정 복지부 지침에 따라',
+	'집중요정 카페인 감사팀 권고로',
+	'요정 건강증진법 제3조에 의거하여',
+] as const;
+

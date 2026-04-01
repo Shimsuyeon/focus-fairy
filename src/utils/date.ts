@@ -55,6 +55,12 @@ export function getWeekRangeForDate(ts: number): { startDate: string; endDate: s
 	};
 }
 
+/** 오늘이 만우절(4월 1일)인지 확인 (KST 기준) */
+export function isAprilFools(): boolean {
+	const d = new Date(Date.now() + KST_OFFSET);
+	return d.getUTCMonth() === 3 && d.getUTCDate() === 1;
+}
+
 /** 기간 문자열을 시작/종료 날짜로 변환 */
 export function getDateRange(period: string): DateRange {
 	const today = new Date(Date.now() + KST_OFFSET);
