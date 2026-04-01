@@ -3,7 +3,7 @@
  * 팀원에게 :fairy-coffee: 응원 보내기
  */
 
-import { replyEphemeral, postMessage, postEphemeral, lookupUserByName } from '../utils/slack';
+import { replyEphemeral, postMessage, lookupUserByName } from '../utils/slack';
 import { getTodayKey, getWeekRangeForDate, isAprilFools } from '../utils/date';
 import { DAILY_CHEER_LIMIT, MEDALS, APRIL_FOOLS_DRINKS } from '../constants/messages';
 
@@ -125,9 +125,6 @@ async function sendCheer(
 	const posted = await postMessage(env, teamId, channelId, publicMessage);
 
 	if (posted) {
-		if (isAprilFoolsCheer) {
-			await postEphemeral(env, teamId, channelId, userId, ':fairy-party: 만우절 농담~ 커피 잘 전달됐어요!');
-		}
 		return replyEphemeral(`:fairy-coffee: 커피 ${actualCount}잔을 보냈어요! 남은 커피: ${remaining}/${DAILY_CHEER_LIMIT}`);
 	} else {
 		return replyEphemeral(':fairy-zzz: 응원 전송에 실패했어요. 봇이 채널에 초대되어 있는지 확인해주세요!');
