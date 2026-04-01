@@ -47,7 +47,7 @@ export const APRIL_FOOLS_ENCOURAGEMENTS = [
 	'오늘 집중 시간은 요정 인사팀에 보고되었습니다 :fairy-chart:',
 	'요정이 잠깐 졸았는데 끝났다고요? :fairy-zzz:',
 	'요정이 기록을 실수로 지웠어요...라고 할 뻔! :fairy-confetti:',
-	'집중 기록이 요정 감사팀에서 조사 중입니다 :fairy-fire:',
+	'집중 기록을 요정 감사팀에서 조사 중입니다 :fairy-fire:',
 ] as const;
 
 /** 만우절 /cheer 대체 음료 */
