@@ -109,7 +109,7 @@ async function sendCheer(
 	if (isAprilFoolsCheer) {
 		const drink = APRIL_FOOLS_DRINKS[Math.floor(Math.random() * APRIL_FOOLS_DRINKS.length)];
 		const reason = APRIL_FOOLS_REASONS[Math.floor(Math.random() * APRIL_FOOLS_REASONS.length)];
-		publicMessage = `:fairy-sprout: <@${userId}>님이 <@${targetUserId}>님에게 커피를 보냈지만, ${reason} ${drink}(으)로 대체되었어요!`;
+		publicMessage = `:fairy-sprout: <@${userId}>님이 <@${targetUserId}>님에게 커피를 보냈지만,\n${reason} ${drink}(으)로 대체되었어요!`;
 	} else {
 		const coffeeEmojis = ':fairy-coffee:'.repeat(actualCount);
 		publicMessage = `${coffeeEmojis} <@${userId}>님이 <@${targetUserId}>님에게 커피 ${actualCount}잔을 보냈어요!`;
