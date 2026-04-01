@@ -5,9 +5,9 @@
 import type { Session } from '../types';
 import { reply, replyEphemeral, postMessage, updateMessage, getUserName } from '../utils/slack';
 import { formatTime, formatDuration, parseDuration, calcLunchDeduction } from '../utils/format';
-import { getDateKey, isCurrentWeek } from '../utils/date';
+import { getDateKey, isCurrentWeek, isAprilFools } from '../utils/date';
 import { getWeekTotalForDate } from '../services/session';
-import { ENCOURAGEMENTS, SESSION_TAGS } from '../constants/messages';
+import { ENCOURAGEMENTS, APRIL_FOOLS_ENCOURAGEMENTS, SESSION_TAGS } from '../constants/messages';
 import { buildFinalChecklistBlocks } from '../interactions';
 import { getWorkspaceSettings, getUserTimezoneInfo } from './settings';
 
@@ -101,7 +101,9 @@ export async function completeEndSession(
 
 	const weekTotal = await getWeekTotalForDate(env, teamId, userId, startTime);
 	const weekLabel = isCurrentWeek(startTime) ? '이번 주' : '지난 주';
-	const randomMsg = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
+	const isAprilFoolsTeam = isAprilFools() && (env.APRIL_FOOLS_TEAM_IDS || '').split(',').map(id => id.trim()).includes(teamId);
+	const messages = isAprilFoolsTeam ? APRIL_FOOLS_ENCOURAGEMENTS : ENCOURAGEMENTS;
+	const randomMsg = messages[Math.floor(Math.random() * messages.length)];
 
 	const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;
 	const deductionParts: string[] = [];

@@ -41,6 +41,15 @@ export const DEFAULT_TAG = 'etc';
 /** 하루 응원 보내기 한도 */
 export const DAILY_CHEER_LIMIT = 5;
 
+/** 만우절 세션 종료 격려 메시지 */
+export const APRIL_FOOLS_ENCOURAGEMENTS = [
+	'요정이 집중 시간을 까먹었어요...라고 할 뻔! :fairy-party:',
+	'오늘 집중 시간은 요정 인사팀에 보고되었습니다 :fairy-chart:',
+	'요정이 잠깐 졸았는데 벌써 끝났다고요? :fairy-zzz:',
+	'요정이 기록을 실수로 지웠어요...라고 할 뻔! :fairy-confetti:',
+	'집중 시간이 너무 짧아 요정 감사팀에서 조사 중입니다 :fairy-fire:',
+] as const;
+
 /** 만우절 /cheer 대체 음료 */
 export const APRIL_FOOLS_DRINKS = [
 	'녹즙', '미숫가루', '옥수수수염차', '양배추즙', '쑥차', '할머니가 끓여주신 대추차',
