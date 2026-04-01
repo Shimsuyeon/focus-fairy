@@ -45,7 +45,7 @@ export const DAILY_CHEER_LIMIT = 5;
 export const APRIL_FOOLS_ENCOURAGEMENTS = [
 	'요정이 집중 시간을 까먹었어요...라고 할 뻔! :fairy-party:',
 	'오늘 집중 시간은 요정 인사팀에 보고되었습니다 :fairy-chart:',
-	'요정이 잠깐 졸았는데 끝났다고요? :fairy-zzz:',
+	'요정이 잠깐 졸았는데... 그래도 타이머는 켜놨어요! :fairy-zzz:',
 	'요정이 기록을 실수로 지웠어요...라고 할 뻔! :fairy-confetti:',
 	'집중 기록을 요정 감사팀에서 조사 중입니다 :fairy-fire:',
 ] as const;
