@@ -5,7 +5,7 @@
 
 import { replyEphemeral, postMessage, lookupUserByName } from '../utils/slack';
 import { getTodayKey, getWeekRangeForDate, isAprilFools } from '../utils/date';
-import { DAILY_CHEER_LIMIT, MEDALS, APRIL_FOOLS_DRINKS } from '../constants/messages';
+import { DAILY_CHEER_LIMIT, MEDALS, APRIL_FOOLS_DRINKS, APRIL_FOOLS_REASONS } from '../constants/messages';
 
 interface CheerLog {
 	from: string;
@@ -108,7 +108,8 @@ async function sendCheer(
 	let publicMessage: string;
 	if (isAprilFoolsCheer) {
 		const drink = APRIL_FOOLS_DRINKS[Math.floor(Math.random() * APRIL_FOOLS_DRINKS.length)];
-		publicMessage = `:fairy-sprout: 집중요정이 ${drink}! <@${userId}> → <@${targetUserId}>`;
+		const reason = APRIL_FOOLS_REASONS[Math.floor(Math.random() * APRIL_FOOLS_REASONS.length)];
+		publicMessage = `:fairy-sprout: <@${userId}>님이 <@${targetUserId}>님에게 커피를 보냈지만, ${reason} ${drink}(으)로 대체되었어요!`;
 	} else {
 		const coffeeEmojis = ':fairy-coffee:'.repeat(actualCount);
 		publicMessage = `${coffeeEmojis} <@${userId}>님이 <@${targetUserId}>님에게 커피 ${actualCount}잔을 보냈어요!`;
