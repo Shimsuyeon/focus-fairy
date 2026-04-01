@@ -51,6 +51,8 @@ export async function handleInteraction(request: Request, env: Env): Promise<Res
 	switch (payload.type) {
 		case 'view_submission':
 			return handleViewSubmission(payload, env);
+		case 'view_closed':
+			return handleViewClosed(payload, env);
 		case 'block_actions':
 			return handleBlockActions(payload, env);
 		default:
@@ -72,6 +74,8 @@ async function handleViewSubmission(payload: SlackInteractionPayload, env: Env):
 			return handleEditPlanSubmission(user.id, user.team_id, view, env);
 		case 'settings_modal':
 			return handleSettingsSubmission(user.id, user.team_id, view, env);
+		case 'april_fools_modal':
+			return handleAprilFoolsAction(user.id, user.team_id, view, env);
 		default:
 			return new Response('', { status: 200 });
 	}
@@ -509,6 +513,65 @@ async function handleToggleCheck(payload: SlackInteractionPayload, env: Env): Pr
 	const tzInfo = await getUserTimezoneInfo(env, user.team_id, userId);
 	const updatedBlocks = buildChecklistBlocks(userId, startTime, items, checked, tagLabel, tzInfo);
 	await updateMessage(env, user.team_id, channel.id, message.ts, message.text, updatedBlocks);
+
+	return new Response('', { status: 200 });
+}
+
+/** 모달 닫기 핸들러 (X 버튼 / close 버튼) */
+async function handleViewClosed(payload: SlackInteractionPayload, env: Env): Promise<Response> {
+	const { view, user } = payload;
+	if (!view) return new Response('', { status: 200 });
+
+	if (view.callback_id === 'april_fools_modal') {
+		return handleAprilFoolsAction(user.id, user.team_id, view, env);
+	}
+
+	return new Response('', { status: 200 });
+}
+
+/** 만우절 모달 → 세션 시작 */
+async function handleAprilFoolsAction(
+	userId: string,
+	teamId: string,
+	view: NonNullable<SlackInteractionPayload['view']>,
+	env: Env
+): Promise<Response> {
+	let channelId: string;
+	let text: string;
+	try {
+		const meta = JSON.parse(view.private_metadata);
+		channelId = meta.channelId;
+		text = meta.text || '';
+	} catch {
+		return new Response('', { status: 200 });
+	}
+
+	if (!channelId) return new Response('', { status: 200 });
+
+	// 이미 집중 중이면 무시
+	const existing = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
+	if (existing) return new Response('', { status: 200 });
+
+	// 세션 시작
+	const now = Date.now();
+	const label = text && text !== 'plan' ? text : '';
+	const checkinData = label ? JSON.stringify({ time: now, label }) : now.toString();
+	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
+
+	const todayKey = getTodayKey();
+	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');
+	if (!todayList.includes(userId)) {
+		todayList.push(userId);
+		await env.STUDY_KV.put(`${teamId}:today:${todayKey}`, JSON.stringify(todayList));
+	}
+
+	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
+	let publicMessage = `:fairy-party: 만우절이에요! 오늘도 집중 화이팅! :fairy-party:\n:fairy-wand: <@${userId}>님이 집중을 시작했어요! (${formatTime(now, tzInfo.timezone, tzInfo.showLabel)})`;
+	if (label) {
+		publicMessage += `\n:fairy-sprout: 계획: ${label}`;
+	}
+
+	await postMessage(env, teamId, channelId, publicMessage);
 
 	return new Response('', { status: 200 });
 }
