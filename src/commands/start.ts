@@ -22,11 +22,14 @@ export async function handleStart(
 		return handleStartPlan(env, teamId, userId, channelId, triggerId);
 	}
 
-	// 만우절 이벤트: Pro 모달 먼저 표시
+	// 만우절 이벤트: 허용된 팀에만 Pro 모달 표시
 	if (isAprilFools() && triggerId) {
-		const existing = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
-		if (!existing) {
-			return openAprilFoolsModal(env, teamId, channelId, text, triggerId);
+		const allowedTeams = (env.APRIL_FOOLS_TEAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+		if (allowedTeams.includes(teamId)) {
+			const existing = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
+			if (!existing) {
+				return openAprilFoolsModal(env, teamId, channelId, text, triggerId);
+			}
 		}
 	}
 
