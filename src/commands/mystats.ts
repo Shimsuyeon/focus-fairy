@@ -38,7 +38,7 @@ export async function handleMyStats(env: Env, teamId: string, userId: string): P
 
 		const elapsed = now - startTime - totalPauseDuration;
 		if (isPaused) {
-			status = `:fairy-moon: 일시정지 중 (${formatDuration(elapsed)} 경과)`;
+			status = `:fairy-moon: 일시정지 중 (집중 ${formatDuration(elapsed)})`;
 		} else {
 			status = `:fairy-fire: 집중 중 (${formatDuration(elapsed)} 경과)`;
 		}
