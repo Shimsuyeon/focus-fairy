@@ -136,8 +136,23 @@ export async function collectTeamStats(env: Env, teamId: string, weekInfo: WeekI
 		);
 		checkinList.keys.forEach((key, idx) => {
 			const userId = key.name.replace(`${teamId}:checkin:`, '');
-			const startTime = parseInt(checkinValues[idx] || '0');
-			const currentSessionDuration = startTime > 0 ? Date.now() - startTime : 0;
+			let startTime = 0;
+			let totalPauseDuration = 0;
+			try {
+				const parsed = JSON.parse(checkinValues[idx] || '0');
+				if (typeof parsed === 'object' && parsed.time) {
+					startTime = parsed.time;
+					totalPauseDuration = parsed.totalPauseDuration || 0;
+					if (parsed.pausedAt) {
+						totalPauseDuration += Date.now() - parsed.pausedAt;
+					}
+				} else {
+					startTime = parseInt(checkinValues[idx] || '0');
+				}
+			} catch {
+				startTime = parseInt(checkinValues[idx] || '0');
+			}
+			const currentSessionDuration = startTime > 0 ? Date.now() - startTime - totalPauseDuration : 0;
 
 			const existing = statsMap.get(userId);
 			if (existing) {
