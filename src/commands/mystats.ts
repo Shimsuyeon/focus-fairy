@@ -15,8 +15,33 @@ export async function handleMyStats(env: Env, teamId: string, userId: string): P
 
 	let status = ':fairy-coffee: 현재 쉬는 중';
 	if (checkIn) {
-		const elapsed = Date.now() - parseInt(checkIn);
-		status = `:fairy-fire: 집중 중 (${formatDuration(elapsed)} 경과)`;
+		const now = Date.now();
+		let startTime: number;
+		let totalPauseDuration = 0;
+		let isPaused = false;
+
+		try {
+			const parsed = JSON.parse(checkIn);
+			if (typeof parsed === 'object' && parsed.time) {
+				startTime = parsed.time;
+				totalPauseDuration = parsed.totalPauseDuration || 0;
+				isPaused = !!parsed.pausedAt;
+				if (isPaused) {
+					totalPauseDuration += now - parsed.pausedAt;
+				}
+			} else {
+				startTime = parseInt(checkIn);
+			}
+		} catch {
+			startTime = parseInt(checkIn);
+		}
+
+		const elapsed = now - startTime - totalPauseDuration;
+		if (isPaused) {
+			status = `:fairy-moon: 일시정지 중 (집중 ${formatDuration(elapsed)})`;
+		} else {
+			status = `:fairy-fire: 집중 중 (${formatDuration(elapsed)} 경과)`;
+		}
 	}
 
 	return replyEphemeral(
