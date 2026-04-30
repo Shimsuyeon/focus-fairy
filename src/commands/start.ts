@@ -2,7 +2,7 @@
  * /start 커맨드 핸들러
  */
 
-import { reply, replyEphemeral, postMessage, postMessageWithBlocks, getBotToken } from '../utils/slack';
+import { reply, replyEphemeral, postMessage, postMessageWithBlocks, getBotToken, setUserStatus } from '../utils/slack';
 import { formatTime, formatDuration } from '../utils/format';
 import { getTodayKey, isAprilFools } from '../utils/date';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
@@ -60,6 +60,8 @@ export async function handleStart(
 	const label = text && !RESERVED_SUBCOMMANDS.includes(text) ? text : '';
 	const checkinData = label ? JSON.stringify({ time: now, label }) : now.toString();
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
+
+	setUserStatus(env, teamId, userId, '집중 중', ':tomato:');
 
 	const todayKey = getTodayKey();
 	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');

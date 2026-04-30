@@ -3,7 +3,7 @@
  * 워크스페이스 설정 모달
  */
 
-import { replyEphemeral, getBotToken, getUserTimezone } from '../utils/slack';
+import { replyEphemeral, getBotToken, getUserTimezone, getUserToken } from '../utils/slack';
 import { MAX_AUTO_DURATION } from '../constants/messages';
 
 export type TimezoneLabelMode = 'auto' | 'always' | 'never';
@@ -105,8 +105,15 @@ export async function getWorkspaceSettings(env: Env, teamId: string): Promise<Wo
 export async function handleSettings(
 	env: Env,
 	teamId: string,
-	triggerId: string
+	userId: string,
+	triggerId: string,
+	text?: string,
+	baseUrl?: string
 ): Promise<Response> {
+	if (text === 'sync') {
+		return handleSyncSettings(env, teamId, userId, baseUrl);
+	}
+
 	if (!triggerId) {
 		return replyEphemeral('모달을 열 수 없어요. 다시 시도해주세요!');
 	}
@@ -247,4 +254,75 @@ export async function handleSettings(
 	}
 
 	return new Response('', { status: 200 });
+}
+
+async function handleSyncSettings(
+	env: Env,
+	teamId: string,
+	userId: string,
+	baseUrl?: string
+): Promise<Response> {
+	const hasToken = !!(await getUserToken(env, teamId, userId));
+
+	if (hasToken) {
+		return new Response(JSON.stringify({
+			response_type: 'ephemeral',
+			text: '🍅 Slack status 동기화: 연결됨',
+			blocks: [
+				{
+					type: 'section',
+					text: {
+						type: 'mrkdwn',
+						text: '🍅 *Slack status 동기화: 연결됨* ✅\n\n`/start`, `/pause`, `/end` 시 Slack status가 자동으로 변경돼요.',
+					},
+				},
+				{
+					type: 'actions',
+					elements: [
+						{
+							type: 'button',
+							text: { type: 'plain_text', text: '🔌 연결 해제' },
+							action_id: 'disconnect_status_sync',
+							style: 'danger',
+							confirm: {
+								title: { type: 'plain_text', text: '연결 해제' },
+								text: { type: 'plain_text', text: 'Slack status 자동 동기화를 해제할까요?' },
+								confirm: { type: 'plain_text', text: '해제' },
+								deny: { type: 'plain_text', text: '취소' },
+							},
+						},
+					],
+				},
+			],
+		}), { headers: { 'Content-Type': 'application/json' } });
+	}
+
+	const oauthUrl = baseUrl ? `${baseUrl}/slack/oauth/user-install` : '';
+
+	return new Response(JSON.stringify({
+		response_type: 'ephemeral',
+		text: '🍅 Slack status 동기화: 연결 안됨',
+		blocks: [
+			{
+				type: 'section',
+				text: {
+					type: 'mrkdwn',
+					text: '🍅 *Slack status 동기화*\n\n연결하면 `/start`, `/pause`, `/end` 시 Slack status가 자동으로 변경돼요.\n\n' +
+						'• `/start` → 🍅 집중 중\n• `/pause` → ☕ 잠깐 자리비움\n• `/end` → status 초기화',
+				},
+			},
+			...(oauthUrl ? [{
+				type: 'actions',
+				elements: [
+					{
+						type: 'button',
+						text: { type: 'plain_text', text: '🔗 Slack에서 권한 연결하기' },
+						url: oauthUrl,
+						action_id: 'connect_status_sync',
+						style: 'primary',
+					},
+				],
+			}] : []),
+		],
+	}), { headers: { 'Content-Type': 'application/json' } });
 }

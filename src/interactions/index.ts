@@ -3,7 +3,7 @@
  * 모달 제출, 버튼 클릭 등 interactive component 이벤트 처리
  */
 
-import { postMessage, postMessageWithBlocks, updateMessage, getBotToken, postEphemeral } from '../utils/slack';
+import { postMessage, postMessageWithBlocks, updateMessage, getBotToken, postEphemeral, setUserStatus } from '../utils/slack';
 import { formatTime } from '../utils/format';
 import { getTodayKey } from '../utils/date';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
@@ -99,6 +99,10 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env): P
 
 	if (actionId === 'confirm_end_duration') {
 		return handleConfirmEndDuration(payload, env);
+	}
+
+	if (actionId === 'disconnect_status_sync') {
+		return handleDisconnectStatusSync(payload, env);
 	}
 
 	return new Response('', { status: 200 });
@@ -209,6 +213,8 @@ async function handleStartPlanSubmission(
 
 	const checkinData = JSON.stringify({ time: now, label: planText, tag });
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
+
+	setUserStatus(env, teamId, userId, '집중 중', ':tomato:');
 
 	const todayKey = getTodayKey();
 	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');
@@ -558,6 +564,8 @@ async function handleAprilFoolsAction(
 	const checkinData = label ? JSON.stringify({ time: now, label }) : now.toString();
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
 
+	setUserStatus(env, teamId, userId, '집중 중', ':tomato:');
+
 	const todayKey = getTodayKey();
 	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');
 	if (!todayList.includes(userId)) {
@@ -820,4 +828,16 @@ export function buildFinalChecklistBlocks(userId: string, startTime: number, ite
 	});
 
 	return blocks;
+}
+
+/** Status sync 연결 해제 */
+async function handleDisconnectStatusSync(payload: SlackInteractionPayload, env: Env): Promise<Response> {
+	const { user, channel } = payload;
+	await env.STUDY_KV.delete(`${user.team_id}:userToken:${user.id}`);
+
+	if (channel) {
+		await postEphemeral(env, user.team_id, channel.id, user.id, '🔌 Slack status 동기화가 해제되었어요. `/settings sync`로 다시 연결할 수 있어요.');
+	}
+
+	return new Response('', { status: 200 });
 }

@@ -132,6 +132,36 @@ export function renderInstallPage(slackAuthUrl: string): string {
 </html>`;
 }
 
+export function renderUserOAuthResultPage(success: boolean, message: string): string {
+	const emoji = success ? '🍅' : '😢';
+	const color = success ? '#34D399' : '#F87171';
+	const detail = success
+		? '<p style="color:#6B7280;margin-top:1rem;">이제 <code>/start</code>, <code>/end</code> 등 사용 시<br>Slack status가 자동으로 변경돼요.<br><br>이 탭을 닫고 Slack으로 돌아가세요!</p>'
+		: '<p style="color:#6B7280;margin-top:1rem;">다시 시도해주세요.</p>';
+
+	return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>${success ? '연결 완료' : '연결 실패'} | Focus Fairy</title>
+	<style>
+		body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:-apple-system,BlinkMacSystemFont,sans-serif; background:#F9FAFB; }
+		.card { text-align:center; background:white; padding:3rem; border-radius:1rem; box-shadow:0 4px 24px rgba(0,0,0,0.08); max-width:400px; }
+		.emoji { font-size:4rem; margin-bottom:1rem; }
+		h1 { color:${color}; white-space:pre-line; font-size:1.4rem; }
+	</style>
+</head>
+<body>
+	<div class="card">
+		<div class="emoji">${emoji}</div>
+		<h1>${message}</h1>
+		${detail}
+	</div>
+</body>
+</html>`;
+}
+
 export function renderResultPage(success: boolean, message: string): string {
 	const emojiHtml = success
 		? `<img src="${FAIRY_CONFETTI_IMG}" alt="confetti" style="width: 64px; height: 64px;">`
