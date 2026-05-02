@@ -3,7 +3,7 @@
  * 집중 세션 일시정지 / 재개
  */
 
-import { reply, replyEphemeral, postMessage } from '../utils/slack';
+import { reply, replyEphemeral, postMessage, setUserStatus } from '../utils/slack';
 import { formatTime, formatDuration } from '../utils/format';
 import { getUserTimezoneInfo } from './settings';
 
@@ -36,6 +36,8 @@ export async function handlePause(
 
 	data.pausedAt = now;
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, JSON.stringify(data));
+
+	await setUserStatus(env, teamId, userId, '잠깐 자리비움', ':coffee:');
 
 	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
 	const elapsed = formatDuration(now - (data.time as number) - ((data.totalPauseDuration as number) || 0));
@@ -84,12 +86,15 @@ export async function handleResume(
 	delete data.pausedAt;
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, JSON.stringify(data));
 
+	const resumeStatusResult = await setUserStatus(env, teamId, userId, '집중 중', ':computer:');
+
 	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
 	const publicMessage = `:fairy-wand: <@${userId}>님이 다시 집중을 시작했어요! (${formatTime(now, tzInfo.timezone, tzInfo.showLabel)}, 휴식 ${formatDuration(pauseDuration)})`;
 
 	const posted = await postMessage(env, teamId, channelId, publicMessage);
 	if (posted) {
-		return replyEphemeral(`:fairy-wand: 다시 집중! (휴식 ${formatDuration(pauseDuration)})`);
+		const debugInfo = resumeStatusResult ? '' : ' (status 동기화 실패)';
+		return replyEphemeral(`:fairy-wand: 다시 집중! (휴식 ${formatDuration(pauseDuration)})${debugInfo}`);
 	} else {
 		return reply(publicMessage);
 	}

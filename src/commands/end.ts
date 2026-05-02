@@ -3,7 +3,7 @@
  */
 
 import type { Session } from '../types';
-import { reply, replyEphemeral, postMessage, updateMessage, getUserName } from '../utils/slack';
+import { reply, replyEphemeral, postMessage, updateMessage, getUserName, clearUserStatus } from '../utils/slack';
 import { formatTime, formatDuration, parseDuration, calcLunchDeduction } from '../utils/format';
 import { getDateKey, isCurrentWeek, isAprilFools } from '../utils/date';
 import { getWeekTotalForDate } from '../services/session';
@@ -91,6 +91,8 @@ export async function completeEndSession(
 	await env.STUDY_KV.put(`${teamId}:total`, JSON.stringify(totalRecords));
 
 	await env.STUDY_KV.delete(`${teamId}:checkin:${userId}`);
+
+	await clearUserStatus(env, teamId, userId);
 
 	if (messageTs && msgChannelId && label && checked) {
 		const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;

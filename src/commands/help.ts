@@ -95,7 +95,8 @@ export async function handleHelp(
 							'  `/cheer leaderboard` — 응원 랭킹\n' +
 							'  `/cheer leaderboard received` — 받은 커피 랭킹\n' +
 							'\n' +
-							'*`/settings`* — 워크스페이스 설정 (모달)',
+							'*`/settings`* — 워크스페이스 설정 (모달)\n' +
+							'  `/settings sync` — Slack status 자동 동기화 연결/해제',
 					},
 				},
 			],

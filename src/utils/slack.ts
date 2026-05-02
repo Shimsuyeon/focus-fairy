@@ -258,6 +258,61 @@ export async function getUserNames(env: Env, teamId: string, userIds: string[]):
 	return names;
 }
 
+/** KV에서 사용자 토큰(user token) 가져오기 */
+export async function getUserToken(env: Env, teamId: string, userId: string): Promise<string | null> {
+	return await env.STUDY_KV.get(`${teamId}:userToken:${userId}`);
+}
+
+/** 사용자의 Slack status 설정 (user token 필요) */
+export async function setUserStatus(
+	env: Env,
+	teamId: string,
+	userId: string,
+	statusText: string,
+	statusEmoji: string
+): Promise<boolean> {
+	const token = await getUserToken(env, teamId, userId);
+	if (!token) {
+		console.log(`setUserStatus: no token for team=${teamId}, user=${userId}`);
+		return false;
+	}
+
+	try {
+		const response = await fetch('https://slack.com/api/users.profile.set', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${token}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				profile: {
+					status_text: statusText,
+					status_emoji: statusEmoji,
+					status_expiration: 0,
+				},
+			}),
+		});
+
+		const data = (await response.json()) as { ok: boolean; error?: string };
+		if (!data.ok) {
+			console.error('Failed to set user status:', data.error);
+			if (data.error === 'token_revoked' || data.error === 'invalid_auth') {
+				await env.STUDY_KV.delete(`${teamId}:userToken:${userId}`);
+			}
+			return false;
+		}
+		return true;
+	} catch (error) {
+		console.error('Failed to set user status:', error);
+		return false;
+	}
+}
+
+/** 사용자의 Slack status 초기화 */
+export async function clearUserStatus(env: Env, teamId: string, userId: string): Promise<boolean> {
+	return setUserStatus(env, teamId, userId, '', '');
+}
+
 /** Slack users.info API 응답 타입 */
 interface SlackUserResponse {
 	ok: boolean;

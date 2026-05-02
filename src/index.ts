@@ -20,7 +20,7 @@ import {
 } from './commands';
 import { reply } from './utils/slack';
 import { handleLanding } from './pages/landing/index';
-import { handleOAuthInstall, handleOAuthCallback } from './pages/install/index';
+import { handleOAuthInstall, handleOAuthCallback, handleUserOAuthInstall, handleUserOAuthCallback } from './pages/install/index';
 import { handleInteraction } from './interactions';
 
 export default {
@@ -34,6 +34,10 @@ export default {
 					return handleOAuthInstall(env);
 				case '/slack/oauth/callback':
 					return handleOAuthCallback(request, env);
+				case '/slack/oauth/user-install':
+					return handleUserOAuthInstall(request, env);
+				case '/slack/oauth/user-callback':
+					return handleUserOAuthCallback(request, env);
 				default: {
 					const teamId = url.searchParams.get('team') || env.DEFAULT_TEAM_ID;
 					const weekParam = url.searchParams.get('week');
@@ -83,7 +87,7 @@ export default {
 		case '/resume':
 			return handleResume(env, teamId, userId, channelId);
 		case '/settings':
-			return handleSettings(env, teamId, triggerId);
+			return handleSettings(env, teamId, userId, triggerId, text, url.origin);
 		case '/help':
 			return handleHelp(env, teamId, triggerId);
 		default:
