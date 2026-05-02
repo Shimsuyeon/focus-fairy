@@ -272,7 +272,10 @@ export async function setUserStatus(
 	statusEmoji: string
 ): Promise<boolean> {
 	const token = await getUserToken(env, teamId, userId);
-	if (!token) return false;
+	if (!token) {
+		console.log(`setUserStatus: no token for team=${teamId}, user=${userId}`);
+		return false;
+	}
 
 	try {
 		const response = await fetch('https://slack.com/api/users.profile.set', {

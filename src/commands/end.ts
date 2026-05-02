@@ -92,7 +92,7 @@ export async function completeEndSession(
 
 	await env.STUDY_KV.delete(`${teamId}:checkin:${userId}`);
 
-	clearUserStatus(env, teamId, userId);
+	await clearUserStatus(env, teamId, userId);
 
 	if (messageTs && msgChannelId && label && checked) {
 		const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;

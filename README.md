@@ -22,6 +22,7 @@
 | `/pattern`  | 집중 패턴 분석 (`time`, `day`, 월별 조회: `26-02`)                       |
 | `/cheer`    | 팀원에게 :fairy-coffee: 응원 보내기 (`leaderboard`, `leaderboard received`) |
 | `/settings` | 워크스페이스 설정 (자동 기록 임계값, 기본 시간대, 라벨 표시 모드)        |
+| `/settings sync` | Slack status 자동 동기화 연결/해제                                  |
 
 ## 🛠 기술 스택
 
@@ -63,11 +64,35 @@ echo '{"TEAM_ID_1":"xoxb-...", "TEAM_ID_2":"xoxb-..."}' | npx wrangler secret pu
 - **팀원 응원** — `/cheer @팀원`으로 :fairy-coffee: 커피 보내기 (하루 5잔 제한, 주간 랭킹)
 - **일시정지/재개** — `/pause`로 휴식, `/resume`으로 재개 (휴식 시간 자동 차감)
 - **워크스페이스 설정** — `/settings`로 자동 기록 임계값, 기본 시간대, 라벨 모드 관리
+- **Slack status 동기화** — `/start`, `/pause`, `/end` 시 Slack status 자동 변경 (opt-in)
 - **세션 소유자 가드** — 타인의 체크리스트/버튼 조작 방지
 
 ---
 
 # 📋 릴리즈 노트
+
+## [1.14.0] - 2026-05-01
+
+### ✨ 새로운 기능
+
+- **Slack status 자동 동기화** — 집중 세션 상태를 Slack status에 자동 반영
+  - `/start` → 💻 집중 중
+  - `/pause` → ☕ 잠깐 자리비움
+  - `/resume` → 💻 집중 중 복귀
+  - `/end` → status 초기화
+  - 사용자 개별 OAuth 동의 방식 (opt-in) — 기존 사용자 영향 없음
+- **`/settings sync`** — Slack status 동기화 연결/해제 관리
+  - 연결 상태 확인, OAuth 권한 연결, 연결 해제
+- **`/help` 업데이트** — `/settings sync` 명령어 안내 추가
+
+### 🔧 기술 개선
+
+- User OAuth 플로우 추가 (`/slack/oauth/user-install`, `/slack/oauth/user-callback`)
+- `users.profile:write` User Token Scope로 Slack status 변경
+- `setUserStatus`, `clearUserStatus` 유틸 함수 추가
+- 토큰 무효화 시 자동 정리 (`token_revoked`, `invalid_auth` 감지)
+
+---
 
 ## [1.12.0] - 2026-03-24
 

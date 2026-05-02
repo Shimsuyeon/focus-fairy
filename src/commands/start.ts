@@ -61,7 +61,7 @@ export async function handleStart(
 	const checkinData = label ? JSON.stringify({ time: now, label }) : now.toString();
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
 
-	setUserStatus(env, teamId, userId, '집중 중', ':tomato:');
+	await setUserStatus(env, teamId, userId, '집중 중', ':computer:');
 
 	const todayKey = getTodayKey();
 	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');

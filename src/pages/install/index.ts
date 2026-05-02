@@ -137,6 +137,7 @@ export async function handleUserOAuthCallback(request: Request, env: Env): Promi
 
 		const teamId = data.team.id;
 		const userId = data.authed_user.id;
+		console.log(`User OAuth success: team=${teamId}, user=${userId}`);
 		await env.STUDY_KV.put(`${teamId}:userToken:${userId}`, data.authed_user.access_token);
 
 		return htmlResponse(renderUserOAuthResultPage(true, 'Slack status 동기화가\n연결되었어요!'));

@@ -308,7 +308,7 @@ async function handleSyncSettings(
 				text: {
 					type: 'mrkdwn',
 					text: '🍅 *Slack status 동기화*\n\n연결하면 `/start`, `/pause`, `/end` 시 Slack status가 자동으로 변경돼요.\n\n' +
-						'• `/start` → 🍅 집중 중\n• `/pause` → ☕ 잠깐 자리비움\n• `/end` → status 초기화',
+						'• `/start` → 💻 집중 중\n• `/pause` → ☕ 잠깐 자리비움\n• `/end` → status 초기화',
 				},
 			},
 			...(oauthUrl ? [{
