@@ -59,13 +59,15 @@ export async function handlePattern(env: Env, teamId: string, userId: string, te
 		return replyEphemeral(':fairy-chart: 아직 분석할 데이터가 없어요!\n\n`/start`로 집중을 시작해보세요 :fairy-wand:');
 	}
 
+	const isMonthly = monthInfo !== null;
+
 	switch (subCommand) {
 		case 'time':
-			return analyzeTimeSlots(sessions, label);
+			return analyzeTimeSlots(sessions, label, isMonthly);
 		case 'day':
-			return analyzeDays(sessions, label);
+			return analyzeDays(sessions, label, isMonthly);
 		default:
-			return analyzeOverall(sessions, label);
+			return analyzeOverall(sessions, label, isMonthly);
 	}
 }
 
@@ -115,7 +117,7 @@ async function collectMonthSessions(env: Env, teamId: string, userId: string, ye
 }
 
 /** 전체 패턴 분석 */
-function analyzeOverall(sessions: Session[], label: string): Response {
+function analyzeOverall(sessions: Session[], label: string, isMonthly: boolean): Response {
 	// 시간대별 집계
 	const timeSlotStats = getTimeSlotStats(sessions);
 	const topTimeSlot = Object.entries(timeSlotStats).sort((a, b) => b[1] - a[1])[0];
@@ -137,8 +139,11 @@ function analyzeOverall(sessions: Session[], label: string): Response {
 	const timeSlotInfo = TIME_SLOTS[topTimeSlot[0] as keyof typeof TIME_SLOTS];
 	const timeSlotPercent = Math.round((topTimeSlot[1] / totalDuration) * 100);
 
+	const monthlyTotalLine = isMonthly ? `:fairy-party: 월 총 집중 시간: *${formatDuration(totalDuration)}*\n` : '';
+
 	const message =
 		`:fairy-chart: *나의 집중 패턴* (${label})\n\n` +
+		monthlyTotalLine +
 		`:fairy-sun: 가장 집중 잘 되는 시간: *${timeSlotInfo.label}* (${timeSlotInfo.range}) - ${timeSlotPercent}%\n` +
 		`:fairy-confetti: 가장 많이 집중한 요일: *${DAY_NAMES[parseInt(topDay[0])]}요일* - ${formatDuration(topDay[1])}\n` +
 		`:fairy-hourglass: 평균 세션 길이: *${formatDuration(avgSessionLength)}*\n` +
@@ -153,7 +158,7 @@ function analyzeOverall(sessions: Session[], label: string): Response {
 }
 
 /** 시간대별 분석 (가로 막대 그래프) */
-function analyzeTimeSlots(sessions: Session[], label: string): Response {
+function analyzeTimeSlots(sessions: Session[], label: string, isMonthly: boolean): Response {
 	const stats = getTimeSlotStats(sessions);
 	const total = Object.values(stats).reduce((sum, v) => sum + v, 0);
 
@@ -197,6 +202,10 @@ function analyzeTimeSlots(sessions: Session[], label: string): Response {
 		return `${slot.label}: ${percent}% (${formatDuration(duration)})`;
 	});
 
+	const contextText = isMonthly
+		? `:fairy-party: 월 총 집중 시간: *${formatDuration(total)}*\n${summaryLines.join(' | ')}`
+		: summaryLines.join(' | ');
+
 	const blocks = [
 		{
 			type: 'section',
@@ -209,7 +218,7 @@ function analyzeTimeSlots(sessions: Session[], label: string): Response {
 		},
 		{
 			type: 'context',
-			elements: [{ type: 'mrkdwn', text: summaryLines.join(' | ') }],
+			elements: [{ type: 'mrkdwn', text: contextText }],
 		},
 	];
 
@@ -219,7 +228,7 @@ function analyzeTimeSlots(sessions: Session[], label: string): Response {
 }
 
 /** 요일별 분석 (가로 막대 그래프) */
-function analyzeDays(sessions: Session[], label: string): Response {
+function analyzeDays(sessions: Session[], label: string, isMonthly: boolean): Response {
 	const stats = getDayStats(sessions);
 	const total = Object.values(stats).reduce((sum, v) => sum + v, 0);
 
@@ -266,6 +275,10 @@ function analyzeDays(sessions: Session[], label: string): Response {
 		return `${dayName}: ${percent}%`;
 	});
 
+	const contextText = isMonthly
+		? `:fairy-party: 월 총 집중 시간: *${formatDuration(total)}*\n${summaryLines.join(' | ')}`
+		: summaryLines.join(' | ');
+
 	const blocks = [
 		{
 			type: 'section',
@@ -278,7 +291,7 @@ function analyzeDays(sessions: Session[], label: string): Response {
 		},
 		{
 			type: 'context',
-			elements: [{ type: 'mrkdwn', text: summaryLines.join(' | ') }],
+			elements: [{ type: 'mrkdwn', text: contextText }],
 		},
 	];
 
