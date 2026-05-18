@@ -20,9 +20,9 @@ Click the **Approve** button in the response, pick your workspace, and grant per
 
 | Command | Slack status |
 | --- | --- |
-| `/start` | 🍅 Focusing |
+| `/start` | 💻 Focusing |
 | `/pause` | ☕ Quick break |
-| `/resume` | 🍅 Focusing |
+| `/resume` | 💻 Focusing |
 | `/end` | (cleared) |
 
 :::note
