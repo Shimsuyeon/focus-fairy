@@ -1,0 +1,41 @@
+---
+title: Focus Fairy
+description: A Slack bot that visualizes your team's focus time.
+template: splash
+hero:
+  tagline: Focus together, grow together — right inside Slack.
+  actions:
+    - text: Get Started
+      link: /en/getting-started/
+      icon: right-arrow
+    - text: GitHub
+      link: https://github.com/Shimsuyeon/focus-fairy
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What is Focus Fairy?
+
+Focus Fairy is a Slack bot that measures and visualizes how much your team focuses.
+Run `/start` to begin a focus session and `/end` to wrap it up — your stats grow day by day, week by week.
+
+<CardGrid>
+  <Card title="Simple commands" icon="seti:bash">
+    All you need is `/start` and `/end`.
+  </Card>
+  <Card title="Personal & team stats" icon="bars">
+    See your own focus pattern and your team's overall flow.
+  </Card>
+  <Card title="Slack status sync" icon="approve-check">
+    Your Slack status updates automatically while you're focusing.
+  </Card>
+  <Card title="Weekly reports" icon="document">
+    A retrospective report lands every week.
+  </Card>
+</CardGrid>
+
+:::note
+English documentation is being translated. For now, the most up-to-date guides live in the [Korean docs](/).
+:::
