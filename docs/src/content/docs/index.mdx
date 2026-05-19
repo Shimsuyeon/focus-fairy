@@ -1,0 +1,37 @@
+---
+title: 집중요정
+description: 팀의 집중 시간을 시각화하는 Slack 봇
+template: splash
+hero:
+  tagline: Slack에서 집중하고, 함께 성장해요.
+  actions:
+    - text: 시작하기
+      link: /getting-started/
+      icon: right-arrow
+    - text: GitHub
+      link: https://github.com/Shimsuyeon/focus-fairy
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## 집중요정이 뭔가요?
+
+집중요정은 Slack 워크스페이스에서 팀원들의 집중 시간을 측정하고 시각화하는 봇이에요.
+`/start`로 집중을 시작하고 `/end`로 끝내면, 누적된 데이터로 매일·매주 성장하는 모습을 확인할 수 있어요.
+
+<CardGrid>
+  <Card title="간단한 명령어" icon="seti:bash">
+    `/start`, `/end`만 알면 시작할 수 있어요.
+  </Card>
+  <Card title="개인 & 팀 통계" icon="bars">
+    내 집중 패턴과 팀 전체 흐름을 한눈에 봐요.
+  </Card>
+  <Card title="Slack Status 연동" icon="approve-check">
+    집중 중일 땐 Slack status가 자동으로 바뀌어요.
+  </Card>
+  <Card title="주간 리포트" icon="document">
+    매주 자동으로 회고용 리포트가 도착해요.
+  </Card>
+</CardGrid>

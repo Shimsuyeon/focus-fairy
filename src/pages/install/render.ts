@@ -133,7 +133,7 @@ export function renderInstallPage(slackAuthUrl: string): string {
 }
 
 export function renderUserOAuthResultPage(success: boolean, message: string): string {
-	const emoji = success ? '🍅' : '😢';
+	const emoji = success ? '💻' : '😢';
 	const color = success ? '#34D399' : '#F87171';
 	const detail = success
 		? '<p style="color:#6B7280;margin-top:1rem;">이제 <code>/start</code>, <code>/end</code> 등 사용 시<br>Slack status가 자동으로 변경돼요.<br><br>이 탭을 닫고 Slack으로 돌아가세요!</p>'

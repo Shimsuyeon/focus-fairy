@@ -166,5 +166,9 @@ dist
 !.env.example
 .wrangler/
 
+# Astro
+
+.astro/
+
 # direnv
 .envrc

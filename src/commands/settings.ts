@@ -267,13 +267,13 @@ async function handleSyncSettings(
 	if (hasToken) {
 		return new Response(JSON.stringify({
 			response_type: 'ephemeral',
-			text: '🍅 Slack status 동기화: 연결됨',
+			text: '💻 Slack status 동기화: 연결됨',
 			blocks: [
 				{
 					type: 'section',
 					text: {
 						type: 'mrkdwn',
-						text: '🍅 *Slack status 동기화: 연결됨* ✅\n\n`/start`, `/pause`, `/end` 시 Slack status가 자동으로 변경돼요.',
+						text: '💻 *Slack status 동기화: 연결됨* ✅\n\n`/start`, `/pause`, `/end` 시 Slack status가 자동으로 변경돼요.',
 					},
 				},
 				{
@@ -301,13 +301,13 @@ async function handleSyncSettings(
 
 	return new Response(JSON.stringify({
 		response_type: 'ephemeral',
-		text: '🍅 Slack status 동기화: 연결 안됨',
+		text: '💻 Slack status 동기화: 연결 안됨',
 		blocks: [
 			{
 				type: 'section',
 				text: {
 					type: 'mrkdwn',
-					text: '🍅 *Slack status 동기화*\n\n연결하면 `/start`, `/pause`, `/end` 시 Slack status가 자동으로 변경돼요.\n\n' +
+					text: '💻 *Slack status 동기화*\n\n연결하면 `/start`, `/pause`, `/end` 시 Slack status가 자동으로 변경돼요.\n\n' +
 						'• `/start` → 💻 집중 중\n• `/pause` → ☕ 잠깐 자리비움\n• `/end` → status 초기화',
 				},
 			},
