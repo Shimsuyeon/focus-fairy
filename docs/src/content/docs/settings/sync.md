@@ -59,4 +59,8 @@ Slack에는 비슷해 보이지만 다른 두 개념이 있어요.
 
 ## 참고
 
-원문 글: [집중요정 디벨롭 — 집중 상태와 유지 status 동기화](https://developer-dreamer.tistory.com/237)
+:::note[원문 글]
+이 기능을 개발하게 된 배경과 user presence vs user status 결정 과정을 기록한 글이에요. 월간 회고 글이라 다양한 주제가 섞여있는데, **본문 하단의 "4월 4주차 → 2. 집중요정 디벨롭 - 집중 상태와 유저 status 동기화"** 섹션이 관련 내용이에요.
+
+→ [집중요정 디벨롭 — 집중 상태와 유저 status 동기화](https://developer-dreamer.tistory.com/237)
+:::
