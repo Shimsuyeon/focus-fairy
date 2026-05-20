@@ -22,7 +22,7 @@ describe('/start 계획 라벨링', () => {
 		await env.STUDY_KV.delete('T_TEST:today:' + new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0]);
 	});
 
-	it('텍스트 없이 /start → 기존 timestamp 형식으로 저장', async () => {
+	it('텍스트 없이 /start → JSON 형식으로 저장 (channelId 포함)', async () => {
 		const res = await slackCommand('/start');
 		const json = await getJson(res);
 
@@ -31,7 +31,9 @@ describe('/start 계획 라벨링', () => {
 
 		const stored = await env.STUDY_KV.get('T_TEST:checkin:U_TEST');
 		expect(stored).toBeTruthy();
-		expect(Number(stored)).toBeGreaterThan(0);
+		const parsed = JSON.parse(stored!);
+		expect(parsed.time).toBeGreaterThan(0);
+		expect(parsed.channelId).toBe('C_TEST');
 	});
 
 	it('텍스트와 함께 /start → JSON 형식으로 저장 + 메시지에 계획 표시', async () => {

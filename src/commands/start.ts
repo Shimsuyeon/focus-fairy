@@ -59,7 +59,7 @@ export async function handleStart(
 	}
 
 	const label = text && !RESERVED_SUBCOMMANDS.includes(text) ? text : '';
-	const checkinData = label ? JSON.stringify({ time: now, label }) : now.toString();
+	const checkinData = JSON.stringify(label ? { time: now, label, channelId } : { time: now, channelId });
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
 
 	await setUserStatus(env, teamId, userId, '집중 중', ':computer:');

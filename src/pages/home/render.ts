@@ -10,6 +10,9 @@ export const HOME_ACTION = {
 	settingsSync: 'home_settings_sync',
 	settings: 'home_settings',
 	help: 'home_help',
+	sessionPause: 'home_session_pause',
+	sessionResume: 'home_session_resume',
+	sessionEnd: 'home_session_end',
 } as const;
 
 interface BuildHomeViewArgs {
@@ -48,6 +51,7 @@ export function buildHomeView({ userName, session, today, week, monthTotalMs, to
 			},
 			{ type: 'section', text: { type: 'mrkdwn', text: '*:fairy-fire: 현재 상태*' } },
 			{ type: 'section', text: { type: 'mrkdwn', text: stateLine } },
+			...buildSessionActionBlocks(session.state),
 			{ type: 'divider' },
 			{ type: 'section', text: { type: 'mrkdwn', text: `*:fairy-chart: 오늘*\n${todayLine}` } },
 			{ type: 'section', text: { type: 'mrkdwn', text: `*:fairy-wish: 이번 주*\n${weekLine}` } },
@@ -159,4 +163,43 @@ function renderStateLine(session: SessionState): string {
 	}
 
 	return `:fairy-fire: *집중 중* — ${elapsed} 경과${labelLine}`;
+}
+
+/** 세션이 활성 상태일 때만 pause/resume/end 버튼 블록을 반환. idle이면 빈 배열. */
+function buildSessionActionBlocks(state: SessionState['state']): unknown[] {
+	if (state === 'idle') return [];
+
+	const buttons = state === 'paused'
+		? [
+				{
+					type: 'button',
+					text: { type: 'plain_text', text: ':fairy-wand: 재개', emoji: true },
+					action_id: HOME_ACTION.sessionResume,
+					style: 'primary',
+				},
+				{
+					type: 'button',
+					text: { type: 'plain_text', text: '종료', emoji: true },
+					action_id: HOME_ACTION.sessionEnd,
+					style: 'danger',
+				},
+			]
+		: [
+				{
+					type: 'button',
+					text: { type: 'plain_text', text: ':fairy-moon: 일시정지', emoji: true },
+					action_id: HOME_ACTION.sessionPause,
+				},
+				{
+					type: 'button',
+					text: { type: 'plain_text', text: '종료', emoji: true },
+					action_id: HOME_ACTION.sessionEnd,
+					style: 'danger',
+				},
+			];
+
+	return [{
+		type: 'actions',
+		elements: buttons,
+	}];
 }

@@ -15,6 +15,7 @@ import { handleHelp } from '../commands/help';
 import { handleSettings, getUserTimezoneInfo } from '../commands/settings';
 import { buildSessionPanelBlocks, PANEL_ACTION } from '../utils/sessionPanel';
 import { HOME_ACTION } from '../pages/home/render';
+import { publishHomeView } from '../pages/home';
 
 interface SlackBlock {
 	type: string;
@@ -121,6 +122,10 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env, or
 		return handleHomeQuickAction(payload, env, origin);
 	}
 
+	if (actionId === HOME_ACTION.sessionPause || actionId === HOME_ACTION.sessionResume || actionId === HOME_ACTION.sessionEnd) {
+		return handleHomeSessionAction(payload, env);
+	}
+
 	return new Response('', { status: 200 });
 }
 
@@ -160,6 +165,50 @@ async function handleHomeQuickAction(payload: SlackInteractionPayload, env: Env,
 		return new Response('', { status: 200 });
 	}
 
+	return new Response('', { status: 200 });
+}
+
+/**
+ * App Home 세션 컨트롤 버튼 — pause/resume/end.
+ * KV에서 세션의 channelId를 읽어 해당 채널에 공개 메시지를 보낸다.
+ * channelId가 없는 레거시 세션은 KV 상태 + Slack status만 변경 (채널 메시지 생략).
+ * 동작 완료 후 App Home 뷰를 갱신해 버튼 상태를 최신으로 반영.
+ */
+async function handleHomeSessionAction(payload: SlackInteractionPayload, env: Env): Promise<Response> {
+	const { user, actions } = payload;
+	const actionId = actions?.[0]?.action_id;
+	if (!actionId) return new Response('', { status: 200 });
+
+	const teamId = user.team_id;
+	const userId = user.id;
+
+	const checkIn = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
+	if (!checkIn) {
+		await publishHomeView(env, teamId, userId);
+		return new Response('', { status: 200 });
+	}
+
+	let channelId = '';
+	try {
+		const parsed = JSON.parse(checkIn);
+		if (typeof parsed === 'object' && parsed.channelId) {
+			channelId = parsed.channelId;
+		}
+	} catch {}
+
+	switch (actionId) {
+		case HOME_ACTION.sessionPause:
+			await handlePause(env, teamId, userId, channelId);
+			break;
+		case HOME_ACTION.sessionResume:
+			await handleResume(env, teamId, userId, channelId);
+			break;
+		case HOME_ACTION.sessionEnd:
+			await handleEnd(env, teamId, userId, channelId, '');
+			break;
+	}
+
+	await publishHomeView(env, teamId, userId);
 	return new Response('', { status: 200 });
 }
 
@@ -353,7 +402,7 @@ async function handleStartPlanSubmission(
 		}), { headers: { 'Content-Type': 'application/json' } });
 	}
 
-	const checkinData = JSON.stringify({ time: now, label: planText, tag });
+	const checkinData = JSON.stringify({ time: now, label: planText, tag, channelId });
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
 
 	await setUserStatus(env, teamId, userId, '집중 중', ':computer:');
@@ -706,7 +755,7 @@ async function handleAprilFoolsAction(
 	// 세션 시작
 	const now = Date.now();
 	const label = text && text !== 'plan' ? text : '';
-	const checkinData = label ? JSON.stringify({ time: now, label }) : now.toString();
+	const checkinData = JSON.stringify(label ? { time: now, label, channelId } : { time: now, channelId });
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
 
 	await setUserStatus(env, teamId, userId, '집중 중', ':computer:');
