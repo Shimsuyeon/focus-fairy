@@ -78,6 +78,25 @@ export async function getUserTodayStats(env: Env, teamId: string, userId: string
 	};
 }
 
+/** 사용자의 이번 달 누적 집중 시간 */
+export async function getUserMonthTotal(env: Env, teamId: string, userId: string): Promise<number> {
+	const today = new Date(Date.now() + 9 * 60 * 60 * 1000);
+	const year = today.getUTCFullYear();
+	const month = today.getUTCMonth();
+	const firstDay = new Date(Date.UTC(year, month, 1));
+	const lastDay = new Date(Date.UTC(year, month + 1, 0));
+
+	let total = 0;
+	const current = new Date(firstDay);
+	while (current <= lastDay) {
+		const dateKey = current.toISOString().split('T')[0];
+		const sessions: Session[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:sessions:${dateKey}`)) || '[]');
+		total += sessions.filter((s) => s.userId === userId).reduce((sum, s) => sum + s.duration, 0);
+		current.setUTCDate(current.getUTCDate() + 1);
+	}
+	return total;
+}
+
 /** 사용자의 이번 주 팀 내 랭킹 (1-indexed). 참여자 없으면 rank=0. */
 export interface WeeklyRank {
 	rank: number;

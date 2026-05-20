@@ -17,6 +17,7 @@ interface BuildHomeViewArgs {
 	session: SessionState;
 	today: TodayStats;
 	week: WeeklyRank;
+	monthTotalMs: number;
 	totalAllTimeMs: number;
 }
 
@@ -25,7 +26,7 @@ interface SlackView {
 	blocks: unknown[];
 }
 
-export function buildHomeView({ userName, session, today, week, totalAllTimeMs }: BuildHomeViewArgs): SlackView {
+export function buildHomeView({ userName, session, today, week, monthTotalMs, totalAllTimeMs }: BuildHomeViewArgs): SlackView {
 	const stateLine = renderStateLine(session);
 	const todayLine = today.sessionCount === 0
 		? '_오늘은 아직 기록이 없어요. `/start` 로 시작해보세요!_'
@@ -33,6 +34,10 @@ export function buildHomeView({ userName, session, today, week, totalAllTimeMs }
 	const weekLine = week.rank === 0
 		? '_이번 주는 아직 기록이 없어요._'
 		: `누적 ${formatDuration(week.totalMs)} · 팀 내 ${week.rank}위 / ${week.teamSize}명`;
+	const currentMonth = new Date(Date.now() + 9 * 60 * 60 * 1000).getUTCMonth() + 1;
+	const monthLine = monthTotalMs === 0
+		? `_${currentMonth}월은 아직 기록이 없어요._`
+		: `누적 ${formatDuration(monthTotalMs)}`;
 
 	return {
 		type: 'home',
@@ -46,6 +51,7 @@ export function buildHomeView({ userName, session, today, week, totalAllTimeMs }
 			{ type: 'divider' },
 			{ type: 'section', text: { type: 'mrkdwn', text: `*:fairy-chart: 오늘*\n${todayLine}` } },
 			{ type: 'section', text: { type: 'mrkdwn', text: `*:fairy-wish: 이번 주*\n${weekLine}` } },
+			{ type: 'section', text: { type: 'mrkdwn', text: `*:fairy-sprout: ${currentMonth}월*\n${monthLine}` } },
 			{ type: 'section', text: { type: 'mrkdwn', text: `*:fairy-gold: 전체 누적*\n${formatDuration(totalAllTimeMs)}` } },
 			{ type: 'divider' },
 			{ type: 'section', text: { type: 'mrkdwn', text: '*:gear: 빠른 진입*' } },

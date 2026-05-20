@@ -4,7 +4,7 @@
  */
 
 import { getBotToken, getUserName } from '../../utils/slack';
-import { getUserSessionState, getUserTodayStats, getUserWeeklyRank } from '../../services/session';
+import { getUserSessionState, getUserTodayStats, getUserWeeklyRank, getUserMonthTotal } from '../../services/session';
 import { buildHomeView, buildOnboardingView } from './render';
 
 /** App Home 뷰를 발행 (views.publish). 신규 사용자는 온보딩 뷰. */
@@ -19,16 +19,17 @@ export async function publishHomeView(env: Env, teamId: string, userId: string):
 	const totalAllTimeMs = totalRecords[userId] || 0;
 	const userName = await getUserName(env, teamId, userId);
 
-	const [session, today, week] = await Promise.all([
+	const [session, today, week, monthTotalMs] = await Promise.all([
 		getUserSessionState(env, teamId, userId),
 		getUserTodayStats(env, teamId, userId),
 		getUserWeeklyRank(env, teamId, userId),
+		getUserMonthTotal(env, teamId, userId),
 	]);
 
 	const isNewUser = totalAllTimeMs === 0 && today.sessionCount === 0 && session.state === 'idle';
 	const view = isNewUser
 		? buildOnboardingView({ userName })
-		: buildHomeView({ userName, session, today, week, totalAllTimeMs });
+		: buildHomeView({ userName, session, today, week, monthTotalMs, totalAllTimeMs });
 
 	try {
 		const res = await fetch('https://slack.com/api/views.publish', {

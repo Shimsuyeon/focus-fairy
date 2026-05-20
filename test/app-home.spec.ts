@@ -20,7 +20,7 @@ describe('home view builders', () => {
 			session: { state: 'focusing', startTime: Date.now() - 30 * 60 * 1000, elapsedMs: 30 * 60 * 1000, label: 'PR 리뷰' },
 			today: { totalMs: 45 * 60 * 1000, sessionCount: 2 },
 			week: { rank: 1, totalMs: 5 * 60 * 60 * 1000, teamSize: 4 },
-			totalAllTimeMs: 100 * 60 * 60 * 1000,
+			monthTotalMs: 20 * 60 * 60 * 1000, totalAllTimeMs: 100 * 60 * 60 * 1000,
 		});
 
 		const serialized = JSON.stringify(view);
@@ -38,7 +38,7 @@ describe('home view builders', () => {
 			session: { state: 'paused', startTime: Date.now() - 60 * 60 * 1000, elapsedMs: 50 * 60 * 1000, pausedAt: Date.now() - 5 * 60 * 1000 },
 			today: baseStats,
 			week: baseWeek,
-			totalAllTimeMs: 0,
+			monthTotalMs: 0, totalAllTimeMs: 0,
 		});
 
 		const serialized = JSON.stringify(view);
@@ -52,7 +52,7 @@ describe('home view builders', () => {
 			session: { state: 'idle' },
 			today: baseStats,
 			week: baseWeek,
-			totalAllTimeMs: 0,
+			monthTotalMs: 0, totalAllTimeMs: 0,
 		});
 
 		expect(JSON.stringify(view)).toContain('쉬는 중');
@@ -64,7 +64,7 @@ describe('home view builders', () => {
 			session: { state: 'idle' },
 			today: baseStats,
 			week: baseWeek,
-			totalAllTimeMs: 0,
+			monthTotalMs: 0, totalAllTimeMs: 0,
 		});
 		const serialized = JSON.stringify(view);
 
