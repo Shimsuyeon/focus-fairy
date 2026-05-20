@@ -16,6 +16,31 @@ export function replyEphemeral(text: string): Response {
 	});
 }
 
+/** 슬랙 ephemeral 응답 생성 (blocks 포함, 명령어 입력한 사람만 보임) */
+export function replyEphemeralWithBlocks(text: string, blocks: unknown[]): Response {
+	return new Response(JSON.stringify({ response_type: 'ephemeral', text, blocks }), {
+		headers: { 'Content-Type': 'application/json' },
+	});
+}
+
+/** Slack interaction의 response_url로 메시지 업데이트 (ephemeral 포함) */
+export async function respondToInteraction(
+	responseUrl: string,
+	body: { text?: string; blocks?: unknown[]; replace_original?: boolean; delete_original?: boolean; response_type?: 'in_channel' | 'ephemeral' }
+): Promise<boolean> {
+	try {
+		const res = await fetch(responseUrl, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+		});
+		return res.ok;
+	} catch (error) {
+		console.error('Failed to respond to interaction:', error);
+		return false;
+	}
+}
+
 /** Team ID에 맞는 Bot Token 가져오기 (KV 우선, 시크릿 폴백) */
 export async function getBotToken(env: Env, teamId: string): Promise<string | null> {
 	// 1. KV에서 조회 (OAuth 설치된 토큰)
@@ -66,18 +91,20 @@ export async function postMessage(env: Env, teamId: string, channel: string, tex
 }
 
 /** 특정 유저에게만 보이는 ephemeral 메시지 전송 */
-export async function postEphemeral(env: Env, teamId: string, channel: string, userId: string, text: string): Promise<boolean> {
+export async function postEphemeral(env: Env, teamId: string, channel: string, userId: string, text: string, blocks?: unknown[]): Promise<boolean> {
 	const token = await getBotToken(env, teamId);
 	if (!token) return false;
 
 	try {
+		const body: Record<string, unknown> = { channel, user: userId, text };
+		if (blocks) body.blocks = blocks;
 		const response = await fetch('https://slack.com/api/chat.postEphemeral', {
 			method: 'POST',
 			headers: {
 				Authorization: `Bearer ${token}`,
 				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify({ channel, user: userId, text }),
+			body: JSON.stringify(body),
 		});
 		const data = (await response.json()) as { ok: boolean; error?: string };
 		return data.ok;
