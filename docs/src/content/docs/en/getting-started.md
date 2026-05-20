@@ -24,6 +24,10 @@ Focus Fairy starts the timer. When you're done, run `/end` to wrap up.
 - `/today` — Today's team-wide focus activity
 - `/weekly` — This week's summary
 
+## 4. Explore the App Home tab
+
+Click **focus-fairy** in the Slack sidebar and open the **Home** tab. You'll see your current session state along with today / this week / all-time stats, plus shortcut buttons for common settings. See the [App Home guide](/en/home/) for details.
+
 :::note
 English documentation is a work in progress. See the [Korean docs](/) for the most complete reference.
 :::

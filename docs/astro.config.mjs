@@ -23,6 +23,7 @@ export default defineConfig({
 					items: [
 						{ label: '소개', translations: { en: 'Introduction' }, slug: 'index' },
 						{ label: '설치하기', translations: { en: 'Installation' }, slug: 'getting-started' },
+						{ label: 'App Home 탭', translations: { en: 'App Home tab' }, slug: 'home' },
 					],
 				},
 				{
