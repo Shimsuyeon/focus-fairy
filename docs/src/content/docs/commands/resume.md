@@ -13,4 +13,6 @@ sidebar:
 /resume
 ```
 
+다른 Slack 앱(예: Hermes Agent)에 `/resume` 명령어가 있어 호출이 가로채진다면, `/fresume`을 사용하세요. 동작은 완전히 동일해요. 자세한 내용은 [명령어 충돌 회피](/commands/aliases/)를 참고하세요.
+
 다시 집중 시간이 누적되기 시작하고, Slack status도 "집중 중"으로 복귀해요.

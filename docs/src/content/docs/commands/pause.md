@@ -13,5 +13,7 @@ sidebar:
 /pause
 ```
 
+다른 Slack 앱과 명령어가 겹칠 때는 `/fpause`로도 같은 동작을 호출할 수 있어요. 자세한 내용은 [명령어 충돌 회피](/commands/aliases/)를 참고하세요.
+
 일시 정지 중에는 집중 시간이 누적되지 않고, [`/settings sync`](/settings/sync/) 설정 시 Slack status가 "잠깐 자리비움"으로 바뀌어요.
 재개하려면 [`/resume`](/commands/resume/)을 입력하세요.
