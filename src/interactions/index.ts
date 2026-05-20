@@ -11,8 +11,10 @@ import { completeEndSession } from '../commands/end';
 import { handlePause, handleResume } from '../commands/pause';
 import { handleEnd } from '../commands/end';
 import { handleMyStats } from '../commands/mystats';
-import { getUserTimezoneInfo } from '../commands/settings';
+import { handleHelp } from '../commands/help';
+import { handleSettings, getUserTimezoneInfo } from '../commands/settings';
 import { buildSessionPanelBlocks, PANEL_ACTION } from '../utils/sessionPanel';
+import { HOME_ACTION } from '../pages/home/render';
 
 interface SlackBlock {
 	type: string;
@@ -52,6 +54,7 @@ export async function handleInteraction(request: Request, env: Env): Promise<Res
 	}
 
 	const payload: SlackInteractionPayload = JSON.parse(payloadStr);
+	const origin = new URL(request.url).origin;
 
 	switch (payload.type) {
 		case 'view_submission':
@@ -59,7 +62,7 @@ export async function handleInteraction(request: Request, env: Env): Promise<Res
 		case 'view_closed':
 			return handleViewClosed(payload, env);
 		case 'block_actions':
-			return handleBlockActions(payload, env);
+			return handleBlockActions(payload, env, origin);
 		default:
 			return new Response('', { status: 200 });
 	}
@@ -87,7 +90,7 @@ async function handleViewSubmission(payload: SlackInteractionPayload, env: Env):
 }
 
 /** 버튼 클릭 핸들러 */
-async function handleBlockActions(payload: SlackInteractionPayload, env: Env): Promise<Response> {
+async function handleBlockActions(payload: SlackInteractionPayload, env: Env, origin: string): Promise<Response> {
 	const actionId = payload.actions?.[0]?.action_id;
 
 	if (actionId === 'add_plan_button') {
@@ -112,6 +115,49 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env): P
 
 	if (actionId === PANEL_ACTION.pause || actionId === PANEL_ACTION.resume || actionId === PANEL_ACTION.end || actionId === PANEL_ACTION.stats) {
 		return handleSessionPanelAction(payload, env);
+	}
+
+	if (actionId === HOME_ACTION.help || actionId === HOME_ACTION.settings || actionId === HOME_ACTION.settingsSync) {
+		return handleHomeQuickAction(payload, env, origin);
+	}
+
+	return new Response('', { status: 200 });
+}
+
+/**
+ * App Home 빠른 진입 버튼.
+ * help / settings 는 기존 핸들러가 trigger_id로 모달을 열어주므로 그대로 위임.
+ * settings sync 는 ephemeral 응답을 반환하는데, App Home 버튼 클릭은 채널 컨텍스트가
+ * 없으므로 response_url로 사용자의 DM 영역에 ephemeral을 발송한다.
+ */
+async function handleHomeQuickAction(payload: SlackInteractionPayload, env: Env, origin: string): Promise<Response> {
+	const { user, trigger_id, response_url, actions } = payload;
+	const actionId = actions?.[0]?.action_id;
+	if (!trigger_id) {
+		return new Response('', { status: 200 });
+	}
+
+	if (actionId === HOME_ACTION.help) {
+		return handleHelp(env, user.team_id, trigger_id);
+	}
+
+	if (actionId === HOME_ACTION.settings) {
+		return handleSettings(env, user.team_id, user.id, trigger_id, '', origin);
+	}
+
+	if (actionId === HOME_ACTION.settingsSync) {
+		const res = await handleSettings(env, user.team_id, user.id, trigger_id, 'sync', origin);
+		// handleSettings('sync') 는 ephemeral JSON body 를 반환한다. App Home 컨텍스트엔
+		// channel/ts 가 없으므로 그대로 returning 해도 Slack이 못 보여줌. response_url로 다시 전송.
+		if (response_url) {
+			try {
+				const body = (await res.json()) as { text?: string; blocks?: unknown[]; response_type?: 'in_channel' | 'ephemeral' };
+				await respondToInteraction(response_url, body);
+			} catch (error) {
+				console.error('Failed to relay sync settings via response_url:', error);
+			}
+		}
+		return new Response('', { status: 200 });
 	}
 
 	return new Response('', { status: 200 });
