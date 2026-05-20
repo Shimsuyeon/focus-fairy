@@ -3,12 +3,16 @@
  * 모달 제출, 버튼 클릭 등 interactive component 이벤트 처리
  */
 
-import { postMessage, postMessageWithBlocks, updateMessage, getBotToken, postEphemeral, setUserStatus } from '../utils/slack';
+import { postMessage, postMessageWithBlocks, updateMessage, getBotToken, postEphemeral, respondToInteraction, setUserStatus } from '../utils/slack';
 import { formatTime } from '../utils/format';
 import { getTodayKey } from '../utils/date';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
 import { completeEndSession } from '../commands/end';
+import { handlePause, handleResume } from '../commands/pause';
+import { handleEnd } from '../commands/end';
+import { handleMyStats } from '../commands/mystats';
 import { getUserTimezoneInfo } from '../commands/settings';
+import { buildSessionPanelBlocks, PANEL_ACTION } from '../utils/sessionPanel';
 
 interface SlackBlock {
 	type: string;
@@ -21,6 +25,7 @@ interface SlackBlock {
 interface SlackInteractionPayload {
 	type: string;
 	trigger_id?: string;
+	response_url?: string;
 	user: { id: string; team_id: string };
 	channel?: { id: string };
 	message?: { ts: string; text: string; blocks?: SlackBlock[] };
@@ -105,7 +110,98 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env): P
 		return handleDisconnectStatusSync(payload, env);
 	}
 
+	if (actionId === PANEL_ACTION.pause || actionId === PANEL_ACTION.resume || actionId === PANEL_ACTION.end || actionId === PANEL_ACTION.stats) {
+		return handleSessionPanelAction(payload, env);
+	}
+
 	return new Response('', { status: 200 });
+}
+
+/** 세션 컨트롤 패널 버튼 핸들러 — pause/resume/end/stats */
+async function handleSessionPanelAction(payload: SlackInteractionPayload, env: Env): Promise<Response> {
+	const { user, response_url, actions } = payload;
+	const actionId = actions?.[0]?.action_id;
+	if (!actionId || !response_url) {
+		return new Response('', { status: 200 });
+	}
+
+	const channelId = payload.channel?.id;
+	if (!channelId) {
+		return new Response('', { status: 200 });
+	}
+
+	const teamId = user.team_id;
+	const userId = user.id;
+
+	switch (actionId) {
+		case PANEL_ACTION.pause:
+			await handlePause(env, teamId, userId, channelId);
+			await refreshSessionPanel(env, teamId, userId, response_url);
+			return new Response('', { status: 200 });
+
+		case PANEL_ACTION.resume:
+			await handleResume(env, teamId, userId, channelId);
+			await refreshSessionPanel(env, teamId, userId, response_url);
+			return new Response('', { status: 200 });
+
+		case PANEL_ACTION.end:
+			await handleEnd(env, teamId, userId, channelId, '');
+			// 종료 후 KV는 비어있으므로 'ended' 패널로 갱신
+			await respondToInteraction(response_url, {
+				replace_original: true,
+				text: ':fairy-party: 세션 종료!',
+				blocks: buildSessionPanelBlocks({ state: 'ended' }),
+			});
+			return new Response('', { status: 200 });
+
+		case PANEL_ACTION.stats: {
+			const statsRes = await handleMyStats(env, teamId, userId);
+			const statsBody = (await statsRes.json()) as { text?: string };
+			await respondToInteraction(response_url, {
+				response_type: 'ephemeral',
+				text: statsBody.text || '',
+			});
+			return new Response('', { status: 200 });
+		}
+	}
+
+	return new Response('', { status: 200 });
+}
+
+/** KV의 현재 세션 상태를 읽어서 패널을 최신 상태로 업데이트 */
+async function refreshSessionPanel(env: Env, teamId: string, userId: string, responseUrl: string): Promise<void> {
+	const checkIn = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
+	if (!checkIn) {
+		await respondToInteraction(responseUrl, {
+			replace_original: true,
+			text: ':fairy-party: 세션 종료!',
+			blocks: buildSessionPanelBlocks({ state: 'ended' }),
+		});
+		return;
+	}
+
+	let startTime: number | undefined;
+	let pausedAt: number | undefined;
+	let totalPauseDuration: number | undefined;
+	try {
+		const parsed = JSON.parse(checkIn);
+		if (typeof parsed === 'object' && parsed.time) {
+			startTime = parsed.time;
+			pausedAt = parsed.pausedAt;
+			totalPauseDuration = parsed.totalPauseDuration;
+		} else {
+			startTime = parseInt(checkIn);
+		}
+	} catch {
+		startTime = parseInt(checkIn);
+	}
+
+	const state = pausedAt ? 'paused' : 'focusing';
+	await respondToInteraction(responseUrl, {
+		replace_original: true,
+		text: state === 'paused' ? ':fairy-moon: 일시정지 중' : ':fairy-hourglass: 집중 중',
+		blocks: buildSessionPanelBlocks({ state, startTime, pausedAt, totalPauseDuration }),
+	});
 }
 
 /** "계획 추가" 버튼 클릭 → 모달 오픈 */
@@ -235,6 +331,9 @@ async function handleStartPlanSubmission(
 		`\n:fairy-fire: 카테고리: ${tagLabel}`;
 
 	await postMessage(env, teamId, channelId, publicMessage);
+
+	const panelBlocks = buildSessionPanelBlocks({ state: 'focusing', startTime: now });
+	await postEphemeral(env, teamId, channelId, userId, ':fairy-wand: 집중 시작!', panelBlocks);
 
 	return new Response('', { status: 200 });
 }
@@ -577,6 +676,10 @@ async function handleAprilFoolsAction(
 
 	// 만우절 메시지는 본인에게만 ephemeral로
 	await postEphemeral(env, teamId, channelId, userId, ':fairy-party: 만우절 농담~ 오늘도 집중 화이팅! :fairy-party:');
+
+	// 컨트롤 패널도 본인에게만 ephemeral로
+	const panelBlocks = buildSessionPanelBlocks({ state: 'focusing', startTime: now });
+	await postEphemeral(env, teamId, channelId, userId, ':fairy-wand: 집중 시작!', panelBlocks);
 
 	// 채널에는 기존과 동일한 시작 메시지
 	let publicMessage = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now, tzInfo.timezone, tzInfo.showLabel)})`;

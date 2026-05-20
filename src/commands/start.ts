@@ -2,10 +2,11 @@
  * /start 커맨드 핸들러
  */
 
-import { reply, replyEphemeral, postMessage, postMessageWithBlocks, getBotToken, setUserStatus } from '../utils/slack';
+import { reply, replyEphemeral, replyEphemeralWithBlocks, postMessage, postMessageWithBlocks, getBotToken, setUserStatus } from '../utils/slack';
 import { formatTime, formatDuration } from '../utils/format';
 import { getTodayKey, isAprilFools } from '../utils/date';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
+import { buildSessionPanelBlocks } from '../utils/sessionPanel';
 import { getUserTimezoneInfo } from './settings';
 
 const RESERVED_SUBCOMMANDS = ['plan'];
@@ -76,10 +77,13 @@ export async function handleStart(
 		publicMessage += `\n:fairy-sprout: 계획: ${label}`;
 	}
 
+	const panelBlocks = buildSessionPanelBlocks({ state: 'focusing', startTime: now });
+	const panelFallback = ':fairy-wand: 집중 시작!';
+
 	if (label) {
 		const posted = await postMessage(env, teamId, channelId, publicMessage);
 		if (posted) {
-			return replyEphemeral(':fairy-wand: 집중 시작!');
+			return replyEphemeralWithBlocks(panelFallback, panelBlocks);
 		} else {
 			return reply(publicMessage);
 		}
@@ -104,7 +108,7 @@ export async function handleStart(
 
 	const posted = await postMessageWithBlocks(env, teamId, channelId, publicMessage, blocks);
 	if (posted) {
-		return replyEphemeral(':fairy-wand: 집중 시작!');
+		return replyEphemeralWithBlocks(panelFallback, panelBlocks);
 	} else {
 		return reply(publicMessage);
 	}

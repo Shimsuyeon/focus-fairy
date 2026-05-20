@@ -72,16 +72,20 @@ describe('/start 계획 라벨링', () => {
 	});
 });
 
+// 주: /end 의 슬래시 응답은 짧은 ephemeral '기록 완료!'만 반환합니다.
+// 본문(수고했어요, 계획: ..., 응원 메시지)은 chat.postMessage API로 채널에 별도 전송되어
+// SELF.fetch 응답에는 포함되지 않으므로, 채널 메시지 텍스트는 직접 검증할 수 없습니다.
+// 대신 KV에 저장된 세션 데이터로 라벨 보존 여부를 검증합니다.
 describe('/end 라벨 포함 종료', () => {
-	it('라벨이 있는 세션 종료 → 메시지에 계획 표시 + 세션에 라벨 저장', async () => {
+	it('라벨이 있는 세션 종료 → ephemeral 기록 완료 + 세션에 라벨 저장', async () => {
 		const startTime = Date.now() - 45 * 60 * 1000; // 45분 전
 		await env.STUDY_KV.put('T_TEST:checkin:U_TEST', JSON.stringify({ time: startTime, label: '기획서 작성' }));
 
 		const res = await slackCommand('/end');
 		const json = await getJson(res);
 
-		expect(json.text).toContain('수고했어요');
-		expect(json.text).toContain('계획: 기획서 작성');
+		expect(json.response_type).toBe('ephemeral');
+		expect(json.text).toContain('기록 완료');
 
 		// 체크인 삭제 확인
 		const checkIn = await env.STUDY_KV.get('T_TEST:checkin:U_TEST');
@@ -102,8 +106,8 @@ describe('/end 라벨 포함 종료', () => {
 		const res = await slackCommand('/end');
 		const json = await getJson(res);
 
-		expect(json.text).toContain('수고했어요');
-		expect(json.text).not.toContain('계획');
+		expect(json.response_type).toBe('ephemeral');
+		expect(json.text).toContain('기록 완료');
 
 		const dateKey = new Date(startTime + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
 		const sessions: Session[] = JSON.parse((await env.STUDY_KV.get(`T_TEST:sessions:${dateKey}`))!);
@@ -117,25 +121,38 @@ describe('/start → /end 전체 플로우', () => {
 		await env.STUDY_KV.delete('T_TEST:checkin:U_TEST');
 	});
 
-	it('계획 입력 후 종료까지 라벨이 유지됨', async () => {
-		// 1. 계획과 함께 시작
+	it('계획 입력 후 종료까지 라벨이 KV에 유지됨', async () => {
+		// 1. 계획과 함께 시작 — bot token 미설정 시 fallback으로 슬래시 응답에 publicMessage가 노출됨
 		const startRes = await slackCommand('/start', 'PR 리뷰, 버그 수정');
 		const startJson = await getJson(startRes);
 		expect(startJson.text).toContain('계획: PR 리뷰, 버그 수정');
 
-		// 2. 종료
+		// 2. 종료 — KV 세션 데이터로 라벨 보존 검증 (슬래시 응답은 '기록 완료!'만 반환)
 		const endRes = await slackCommand('/end');
 		const endJson = await getJson(endRes);
-		expect(endJson.text).toContain('계획: PR 리뷰, 버그 수정');
+		expect(endJson.text).toContain('기록 완료');
+
+		const stored = await env.STUDY_KV.get('T_TEST:checkin:U_TEST');
+		expect(stored).toBeNull();
+
+		const todayDateKey = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
+		const sessions: Session[] = JSON.parse((await env.STUDY_KV.get(`T_TEST:sessions:${todayDateKey}`))!);
+		expect(sessions).toHaveLength(1);
+		expect(sessions[0].label).toBe('PR 리뷰, 버그 수정');
 	});
 
-	it('계획 없이 시작 → 종료 시에도 계획 미표시', async () => {
+	it('계획 없이 시작 → 종료 시 KV 세션에 라벨 없음', async () => {
 		const startRes = await slackCommand('/start');
 		const startJson = await getJson(startRes);
 		expect(startJson.text).not.toContain('계획');
 
 		const endRes = await slackCommand('/end');
 		const endJson = await getJson(endRes);
-		expect(endJson.text).not.toContain('계획');
+		expect(endJson.text).toContain('기록 완료');
+
+		const todayDateKey = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
+		const sessions: Session[] = JSON.parse((await env.STUDY_KV.get(`T_TEST:sessions:${todayDateKey}`))!);
+		expect(sessions).toHaveLength(1);
+		expect(sessions[0].label).toBeUndefined();
 	});
 });

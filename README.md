@@ -24,6 +24,10 @@
 | `/settings` | 워크스페이스 설정 (자동 기록 임계값, 기본 시간대, 라벨 표시 모드)        |
 | `/settings sync` | Slack status 자동 동기화 연결/해제                                  |
 
+> 💡 다른 Slack 앱(예: Hermes Agent)과 명령어가 충돌할 때는 `/fstart`, `/fend`, `/fpause`, `/fresume` alias를 사용하세요. 자세한 내용은 [docs](https://focus-fairy-docs.pages.dev/commands/aliases/) 참고.
+>
+> `/start` 실행 시 본인에게만 보이는 ephemeral 컨트롤 패널(일시정지/종료/통계 버튼)이 함께 표시돼서, 슬래시 명령어를 다시 치지 않고도 세션을 조작할 수 있어요.
+
 ## 🛠 기술 스택
 
 - **Cloudflare Workers** - 서버리스 배포

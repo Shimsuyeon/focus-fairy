@@ -65,8 +65,10 @@ export default {
 
 		switch (command) {
 			case '/start':
+			case '/fstart':
 				return handleStart(env, teamId, userId, channelId, text, triggerId);
 			case '/end':
+			case '/fend':
 				return handleEnd(env, teamId, userId, channelId, text);
 			case '/weekly':
 				return handleWeekly(env, teamId, userId, channelId);
@@ -83,8 +85,10 @@ export default {
 		case '/cheer':
 			return handleCheer(env, teamId, userId, channelId, text);
 		case '/pause':
+		case '/fpause':
 			return handlePause(env, teamId, userId, channelId);
 		case '/resume':
+		case '/fresume':
 			return handleResume(env, teamId, userId, channelId);
 		case '/settings':
 			return handleSettings(env, teamId, userId, triggerId, text, url.origin);
