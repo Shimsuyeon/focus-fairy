@@ -27,6 +27,8 @@
 > 💡 다른 Slack 앱(예: Hermes Agent)과 명령어가 충돌할 때는 `/fstart`, `/fend`, `/fpause`, `/fresume` alias를 사용하세요. 자세한 내용은 [docs](https://focus-fairy-docs.pages.dev/commands/aliases/) 참고.
 >
 > `/start` 실행 시 본인에게만 보이는 ephemeral 컨트롤 패널(일시정지/종료/통계 버튼)이 함께 표시돼서, 슬래시 명령어를 다시 치지 않고도 세션을 조작할 수 있어요.
+>
+> 🏠 Slack 사이드바에서 봇 이름을 클릭하면 **App Home 탭**에서 본인 통계(오늘/이번 주/전체 누적 + 팀 내 랭킹)와 빠른 진입 버튼을 한눈에 볼 수 있어요. 자세한 내용은 [App Home 가이드](https://focus-fairy-docs.pages.dev/home/) 참고.
 
 ## 🛠 기술 스택
 

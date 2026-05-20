@@ -35,9 +35,12 @@ sidebar:
 컨트롤 패널은 Slack을 새로고침하거나 채널을 다시 열면 사라져요. 다시 보려면 `/start`를 한 번 더 실행하지 말고, 기존처럼 슬래시 명령어(또는 [/f* alias](/commands/aliases/))를 사용하세요.
 :::
 
+[App Home 탭](/home/)에서도 동일한 일시정지/재개/종료 버튼을 사용할 수 있어요. 채널을 떠나 있을 때 유용합니다.
+
 ## 관련 명령어
 
 - [`/pause`](/commands/pause/) — 세션 일시 정지
 - [`/resume`](/commands/resume/) — 일시 정지된 세션 재개
 - [`/end`](/commands/end/) — 세션 종료
 - [명령어 충돌 회피](/commands/aliases/) — 다른 봇과 명령어가 겹칠 때
+- [App Home 탭](/home/) — 본인 통계 대시보드 + 세션 컨트롤

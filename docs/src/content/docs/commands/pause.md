@@ -17,3 +17,5 @@ sidebar:
 
 일시 정지 중에는 집중 시간이 누적되지 않고, [`/settings sync`](/settings/sync/) 설정 시 Slack status가 "잠깐 자리비움"으로 바뀌어요.
 재개하려면 [`/resume`](/commands/resume/)을 입력하세요.
+
+슬래시 명령어 외에도 [App Home 탭](/home/)이나 `/start` 직후 뜨는 [세션 컨트롤 패널](/commands/start/#컨트롤-패널)의 버튼으로도 일시정지할 수 있어요.

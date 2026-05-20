@@ -22,6 +22,7 @@ import { reply } from './utils/slack';
 import { handleLanding } from './pages/landing/index';
 import { handleOAuthInstall, handleOAuthCallback, handleUserOAuthInstall, handleUserOAuthCallback } from './pages/install/index';
 import { handleInteraction } from './interactions';
+import { handleEvent } from './events';
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
@@ -49,6 +50,11 @@ export default {
 		// Slack Interactivity 엔드포인트
 		if (url.pathname === '/slack/interactions') {
 			return handleInteraction(request, env);
+		}
+
+		// Slack Events API 엔드포인트 (app_home_opened 등)
+		if (url.pathname === '/slack/events') {
+			return handleEvent(request, env);
 		}
 
 		if (url.pathname !== '/slack/commands') {
