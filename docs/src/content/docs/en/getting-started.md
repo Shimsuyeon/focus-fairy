@@ -28,6 +28,10 @@ Focus Fairy starts the timer. When you're done, run `/end` to wrap up.
 
 Click **focus-fairy** in the Slack sidebar and open the **Home** tab. You'll see your current session state along with today / this week / all-time stats, plus shortcut buttons for common settings. See the [App Home guide](/en/home/) for details.
 
+## 5. Connect the Chrome extension (optional)
+
+To start and stop sessions from your browser toolbar without opening Slack, install the [Chrome extension](/en/extension/). Issue a token with the **크롬 익스텐션 연결** button in the Home tab or `/settings extension`, then paste it into the extension.
+
 :::note
 English documentation is a work in progress. See the [Korean docs](/) for the most complete reference.
 :::

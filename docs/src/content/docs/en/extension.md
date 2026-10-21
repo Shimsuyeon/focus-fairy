@@ -1,0 +1,109 @@
+---
+title: Chrome extension
+description: Start and stop focus sessions from a Chrome toolbar popup and see this month's stats, without opening Slack.
+sidebar:
+  order: 60
+---
+
+If typing `/start` and `/end` in Slack every time feels tedious, try the **focus-fairy Chrome extension**. Click the toolbar icon to open a popup where you can start, pause and end sessions, see who's focusing with you today, and check this month's stats on one screen.
+
+Sessions are saved in the same place as the Slack commands. You can start in the extension and `/end` in Slack, or the other way around.
+
+## Install
+
+The extension isn't on the Chrome Web Store yet, so install it in **developer mode**.
+
+1. Download the [GitHub repository](https://github.com/Shimsuyeon/focus-fairy) (**Code → Download ZIP** and unzip, or `git clone`).
+2. Open `chrome://extensions` and turn on **Developer mode** (top right).
+3. Click **Load unpacked** and select the `extension/` folder in the repository.
+4. Pin focus-fairy from the puzzle icon in the toolbar.
+
+## Connect a workspace
+
+The extension identifies you with a **personal connection token** instead of your Slack account.
+
+1. In the focus-fairy **Home tab**, click **크롬 익스텐션 연결** (Connect Chrome extension), or type `/settings extension` in any channel.
+2. Copy the `ff_...` token shown in the modal.
+3. Open the extension popup, paste the token and click **연결하기** (Connect).
+
+:::caution
+Treat the token like a password and don't share it. It's shown only once, and the server stores only its hash.
+
+Issuing a new token **immediately invalidates the old one**, so reissue it if you think it leaked.
+:::
+
+### Multiple workspaces
+
+If you use focus-fairy in several Slack workspaces, issue a token in each one and add it with **＋ 워크스페이스 추가** (Add workspace) in the dropdown at the top of the popup.
+
+- Switch workspaces with the dropdown. A workspace that is focusing shows 🟢, and one on a break shows 🟠.
+- Use the ⚙︎ button to change the token or disconnect the current workspace.
+- Sessions and channel choices are kept separately per workspace.
+
+## Popup tour
+
+### Left — session controls
+
+| Area | Content |
+|---|---|
+| State · time | Current session time while focusing, today's total while resting |
+| Edit | Change the plan of the running session |
+| Categories | 📚 Study · 💻 Side project · 📖 Reading · 🏃 Exercise · ✨ Other. Pick one before starting, or tap one while focusing to change it right away |
+| Plan · channel | Write a plan and choose the channel for start/end messages before starting |
+| Focusing together today | Teammates who focused today, their current state and today's time (people focusing now come first) |
+| Buttons | Start / Take a break / Focus again / End |
+
+:::note
+The team list shows **only the category**, never the plans people wrote.
+:::
+
+### Right — this month
+
+| Area | Content |
+|---|---|
+| This month | Monthly total and progress toward your monthly goal. The vertical mark on the bar is the goal pace up to today |
+| Today · daily average | Today's focus time and this month's daily average |
+| Per day to goal | How much you need per day for the rest of the month. Hover to see days left, time to fill and your pace up to yesterday |
+| Focus days | Days you focused this month and your 🔥 streak |
+| Chart | **Cumulative** — actual total vs. goal pace (dashed), **Daily** — bars per day. Hover for each day's values |
+| Categories | Time and share per category this month |
+
+Use ‹ › to look at previous months.
+
+### Set a monthly goal
+
+Click **목표 설정** (Set goal) at the top right and enter your monthly goal in hours (e.g. `80`). Progress, per-day-to-goal and the goal pace line then appear. Enter `0` to remove the goal.
+
+## Channel messages
+
+Starting and ending from the extension still posts to Slack as usual. Choose the channel in the popup.
+
+- The list shows **channels where you've used `/start` in that workspace** (the 10 most recent). If it's empty, run `/start` once in the channel you want.
+- The default is the channel where you last used `/start`.
+- Choose **💤 채널에 안 올리기** (Don't post) to record without a message.
+
+:::tip
+This avoids adding the `channels:read` scope to the bot, so existing workspaces can use the extension **without reinstalling**.
+:::
+
+## Badge and shortcuts
+
+- The toolbar badge shows your focus time (green = focusing, orange = on a break, `!` = check your token).
+- `⌥⇧F` (Windows: `Alt+Shift+F`) — open the popup
+- `⌥⇧S` (Windows: `Alt+Shift+S`) — start / take a break / focus again without opening the popup
+- Change shortcuts at `chrome://extensions/shortcuts`.
+
+## FAQ
+
+**Does a session started in Slack show up in the extension?**
+Yes. The extension syncs whenever you open the popup and every 5 minutes.
+
+**What if I end a session that ran for more than 6 hours?**
+Same as [`/end`](/en/commands/end/) in Slack: above the workspace's auto-record threshold (6 hours by default, configurable in `/settings`) you're asked to confirm, and you can enter the actual focus time yourself.
+
+**Does Slack status sync still work?**
+Yes. If you connected [`/settings sync`](/en/settings/sync/), starting and ending from the extension updates your status too.
+
+:::note
+English documentation is a work in progress. See the [Korean docs](/extension/) for the most complete reference.
+:::

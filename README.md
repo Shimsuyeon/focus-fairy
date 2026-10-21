@@ -23,12 +23,15 @@
 | `/cheer`    | 팀원에게 :fairy-coffee: 응원 보내기 (`leaderboard`, `leaderboard received`) |
 | `/settings` | 워크스페이스 설정 (자동 기록 임계값, 기본 시간대, 라벨 표시 모드)        |
 | `/settings sync` | Slack status 자동 동기화 연결/해제                                  |
+| `/settings extension` | 크롬 익스텐션 연결 토큰 발급                                   |
 
 > 💡 다른 Slack 앱(예: Hermes Agent)과 명령어가 충돌할 때는 `/fstart`, `/fend`, `/fpause`, `/fresume` alias를 사용하세요. 자세한 내용은 [docs](https://focus-fairy-docs.pages.dev/commands/aliases/) 참고.
 >
 > `/start` 실행 시 본인에게만 보이는 ephemeral 컨트롤 패널(일시정지/종료/통계 버튼)이 함께 표시돼서, 슬래시 명령어를 다시 치지 않고도 세션을 조작할 수 있어요.
 >
 > 🏠 Slack 사이드바에서 봇 이름을 클릭하면 **App Home 탭**에서 본인 통계(오늘/이번 주/전체 누적 + 팀 내 랭킹)와 빠른 진입 버튼을 한눈에 볼 수 있어요. 자세한 내용은 [App Home 가이드](https://focus-fairy-docs.pages.dev/home/) 참고.
+>
+> 🧩 **크롬 익스텐션**으로 Slack에 들어가지 않고 툴바 팝업에서 세션을 시작·쉬어가기·종료하고, 오늘 함께 집중한 팀원과 이번 달 통계(목표 진행률, 누적 그래프)를 볼 수 있어요. 여러 워크스페이스 전환도 지원해요. 설치와 연결은 [익스텐션 가이드](https://focus-fairy-docs.pages.dev/extension/) 참고.
 
 ## 🛠 기술 스택
 
