@@ -136,19 +136,16 @@ export async function completeEndSession(
 	return formatDuration(duration);
 }
 
-export async function handleEnd(
-	env: Env,
-	teamId: string,
-	userId: string,
-	channelId: string,
-	text: string
-): Promise<Response> {
-	const checkIn = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
+export interface PreparedEnd {
+	checkin: CheckinData;
+	duration: number;
+	lunchDeducted: number;
+	maxAutoDuration: number;
+	tzInfo: { timezone: string; showLabel: boolean };
+}
 
-	if (!checkIn) {
-		return replyEphemeral('아직 시작 전이에요! /start로 요정을 불러주세요 :fairy-wand:');
-	}
-
+/** 종료 시점 기준 기록될 시간 계산 (휴식 + 점심 차감) — /end 와 익스텐션 API 공용 */
+export async function prepareEndSession(env: Env, teamId: string, userId: string, checkIn: string): Promise<PreparedEnd> {
 	const now = Date.now();
 	const checkin = parseCheckinData(checkIn, now);
 	let duration = now - checkin.startTime - checkin.totalPauseDuration;
@@ -166,8 +163,28 @@ export async function handleEnd(
 		duration -= lunchDeducted;
 	}
 
+	return { checkin, duration, lunchDeducted, maxAutoDuration: settings.maxAutoDuration, tzInfo };
+}
+
+export async function handleEnd(
+	env: Env,
+	teamId: string,
+	userId: string,
+	channelId: string,
+	text: string
+): Promise<Response> {
+	const checkIn = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
+
+	if (!checkIn) {
+		return replyEphemeral('아직 시작 전이에요! /start로 요정을 불러주세요 :fairy-wand:');
+	}
+
+	const prepared = await prepareEndSession(env, teamId, userId, checkIn);
+	const { checkin, tzInfo, lunchDeducted, maxAutoDuration } = prepared;
+	let duration = prepared.duration;
+
 	// 임계값 초과 + 시간 입력 없으면 경고 + 확인 버튼 (본인에게만)
-	if (duration > settings.maxAutoDuration && !text) {
+	if (duration > maxAutoDuration && !text) {
 		let warningMsg = `:fairy-zzz: ${formatDuration(duration)} 기록 예정!`;
 		if (checkin.totalPauseDuration > 0) {
 			warningMsg += ` (중간 휴식 ${formatDuration(checkin.totalPauseDuration)}을 제외했어요!)`;

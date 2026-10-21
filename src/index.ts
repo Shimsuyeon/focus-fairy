@@ -23,10 +23,17 @@ import { handleLanding } from './pages/landing/index';
 import { handleOAuthInstall, handleOAuthCallback, handleUserOAuthInstall, handleUserOAuthCallback } from './pages/install/index';
 import { handleInteraction } from './interactions';
 import { handleEvent } from './events';
+import { handleApi } from './api';
+import { rememberChannel } from './services/session';
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		const url = new URL(request.url);
+
+		// 익스텐션용 REST API
+		if (url.pathname.startsWith('/api/')) {
+			return handleApi(request, env, url);
+		}
 
 		// GET 요청 라우팅
 		if (request.method !== 'POST') {
@@ -68,10 +75,14 @@ export default {
 		const channelId = formData.get('channel_id') as string;
 		const text = (formData.get('text') as string)?.trim() || '';
 		const triggerId = (formData.get('trigger_id') as string) || '';
+		const channelName = (formData.get('channel_name') as string) || '';
 
 		switch (command) {
 			case '/start':
 			case '/fstart':
+				if (channelId && channelName) {
+					await rememberChannel(env, teamId, userId, channelId, channelName);
+				}
 				return handleStart(env, teamId, userId, channelId, text, triggerId);
 			case '/end':
 			case '/fend':

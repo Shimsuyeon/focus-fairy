@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8" />
+		<title>집중요정</title>
+		<link rel="stylesheet" href="popup.css" />
+	</head>
+	<body>
+		<header>
+			<img src="icons/icon32.png" alt="" width="20" height="20" />
+			<h1>집중요정</h1>
+			<button id="open-settings" class="icon-btn" title="설정" hidden>⚙︎</button>
+		</header>
+
+		<p id="error" class="error" hidden></p>
+
+		<!-- 토큰 설정 -->
+		<section id="view-setup" hidden>
+			<p class="hint">
+				Slack 집중요정 <b>홈 탭 → 크롬 익스텐션 연결</b> 버튼이나 <code>/settings extension</code> 으로 토큰을 발급받아 붙여넣어 주세요.
+			</p>
+			<label>
+				토큰
+				<input id="token" type="password" placeholder="ff_..." autocomplete="off" spellcheck="false" />
+			</label>
+			<details>
+				<summary>서버 주소</summary>
+				<input id="server-url" type="url" spellcheck="false" />
+			</details>
+			<div class="row">
+				<button id="save-config" class="primary">연결하기</button>
+				<button id="cancel-setup" hidden>취소</button>
+			</div>
+			<button id="disconnect" class="link danger" hidden>연결 해제</button>
+		</section>
+
+		<!-- 세션 -->
+		<section id="view-session" hidden>
+			<div class="status">
+				<span id="state-label" class="state"></span>
+				<div id="clock" class="clock">0:00:00</div>
+				<p id="session-meta" class="meta" hidden></p>
+			</div>
+
+			<div id="idle-form" hidden>
+				<textarea id="plan" rows="2" placeholder="오늘의 계획 (선택, 줄바꿈으로 여러 개)"></textarea>
+				<select id="tag">
+					<option value="">카테고리 선택 안 함</option>
+				</select>
+				<select id="channel" title="시작·종료 메시지를 올릴 채널">
+					<option value="__none__">💤 채널에 안 올리기 (기록만)</option>
+				</select>
+				<button id="btn-start" class="primary wide">🧚 집중 시작</button>
+				<p id="channel-hint" class="hint" hidden>
+					Slack 채널에서 <code>/start</code> 를 한 번 하면 그 채널을 여기서 고를 수 있어요. 지금은 기록만 돼요.
+				</p>
+			</div>
+
+			<div id="active-actions" class="row" hidden>
+				<button id="btn-pause">🌙 일시정지</button>
+				<button id="btn-resume" class="primary">🪄 재개</button>
+				<button id="btn-end" class="danger">종료</button>
+			</div>
+
+			<div id="end-confirm" class="confirm" hidden>
+				<p id="end-confirm-text"></p>
+				<button id="btn-end-confirm" class="primary wide"></button>
+				<div class="manual">
+					<span>직접 입력</span>
+					<input id="manual-h" type="number" min="0" max="24" placeholder="0" />시간
+					<input id="manual-m" type="number" min="0" max="59" placeholder="0" />분
+					<button id="btn-end-manual">기록</button>
+				</div>
+				<button id="btn-end-cancel" class="link">취소</button>
+			</div>
+
+			<p id="today" class="today"></p>
+		</section>
+
+		<script type="module" src="popup.js"></script>
+	</body>
+</html>

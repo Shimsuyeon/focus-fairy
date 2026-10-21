@@ -2,9 +2,10 @@
  * /start 커맨드 핸들러
  */
 
-import { reply, replyEphemeral, replyEphemeralWithBlocks, postMessage, postMessageWithBlocks, getBotToken, setUserStatus } from '../utils/slack';
+import { reply, replyEphemeral, replyEphemeralWithBlocks, postMessage, postMessageWithBlocks, getBotToken } from '../utils/slack';
 import { formatTime, formatDuration } from '../utils/format';
-import { getTodayKey, isAprilFools } from '../utils/date';
+import { isAprilFools } from '../utils/date';
+import { beginSession } from '../services/session';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
 import { buildSessionPanelBlocks } from '../utils/sessionPanel';
 import { getUserTimezoneInfo } from './settings';
@@ -59,17 +60,7 @@ export async function handleStart(
 	}
 
 	const label = text && !RESERVED_SUBCOMMANDS.includes(text) ? text : '';
-	const checkinData = JSON.stringify(label ? { time: now, label, channelId } : { time: now, channelId });
-	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
-
-	await setUserStatus(env, teamId, userId, '집중 중', ':computer:');
-
-	const todayKey = getTodayKey();
-	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');
-	if (!todayList.includes(userId)) {
-		todayList.push(userId);
-		await env.STUDY_KV.put(`${teamId}:today:${todayKey}`, JSON.stringify(todayList));
-	}
+	await beginSession(env, teamId, userId, now, { channelId, label });
 
 	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
 	let publicMessage = `:fairy-wand: <@${userId}>님이 집중을 시작했어요! 화이팅! (${formatTime(now, tzInfo.timezone, tzInfo.showLabel)})`;

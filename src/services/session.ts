@@ -4,7 +4,7 @@
 
 import type { Session } from '../types';
 import { formatDuration } from '../utils/format';
-import { getUserNames } from '../utils/slack';
+import { getUserNames, setUserStatus } from '../utils/slack';
 import { getWeekRangeForDate, getTodayKey } from '../utils/date';
 import { MEDALS } from '../constants/messages';
 
@@ -60,6 +60,73 @@ export async function getUserSessionState(env: Env, teamId: string, userId: stri
 		pausedAt,
 		totalPauseDuration,
 	};
+}
+
+/**
+ * 세션 시작 공통 처리 — checkin 저장, Slack status 변경, 오늘 참여자 등록.
+ * 채널 메시지는 호출하는 쪽(/start, 계획 모달, 익스텐션 API)마다 달라서 여기서 보내지 않는다.
+ * channelId가 있으면 lastChannel로 기억해 채널 컨텍스트가 없는 클라이언트(익스텐션)가 재사용한다.
+ */
+export async function beginSession(
+	env: Env,
+	teamId: string,
+	userId: string,
+	now: number,
+	{ channelId, label, tag }: { channelId?: string; label?: string; tag?: string }
+): Promise<void> {
+	const checkinData: Record<string, unknown> = { time: now };
+	if (label) checkinData.label = label;
+	if (tag) checkinData.tag = tag;
+	if (channelId) checkinData.channelId = channelId;
+	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, JSON.stringify(checkinData));
+
+	if (channelId) {
+		await env.STUDY_KV.put(`${teamId}:lastChannel:${userId}`, channelId);
+	}
+
+	await setUserStatus(env, teamId, userId, '집중 중', ':computer:');
+
+	const todayKey = getTodayKey();
+	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');
+	if (!todayList.includes(userId)) {
+		todayList.push(userId);
+		await env.STUDY_KV.put(`${teamId}:today:${todayKey}`, JSON.stringify(todayList));
+	}
+}
+
+/** 사용자가 /start 한 채널 (익스텐션 채널 선택용) */
+export interface RecentChannel {
+	id: string;
+	name: string;
+	lastUsedAt: number;
+}
+
+const MAX_RECENT_CHANNELS = 10;
+
+/** 슬래시 커맨드 payload의 channel_name을 사람이 읽을 이름으로 */
+function displayChannelName(channelId: string, channelName: string): string {
+	if (channelName === 'directmessage' || channelId.startsWith('D')) return '집중요정 DM';
+	if (channelName === 'privategroup') return '비공개 채널';
+	return `#${channelName}`;
+}
+
+/** /start 한 채널을 최근 채널 목록 맨 앞에 기록 (channels:read 권한 없이 채널 이름을 얻는 방법) */
+export async function rememberChannel(env: Env, teamId: string, userId: string, channelId: string, channelName: string): Promise<void> {
+	const channels = await getRecentChannels(env, teamId, userId);
+	const next = [
+		{ id: channelId, name: displayChannelName(channelId, channelName), lastUsedAt: Date.now() },
+		...channels.filter((c) => c.id !== channelId),
+	].slice(0, MAX_RECENT_CHANNELS);
+	await env.STUDY_KV.put(`${teamId}:recentChannels:${userId}`, JSON.stringify(next));
+}
+
+export async function getRecentChannels(env: Env, teamId: string, userId: string): Promise<RecentChannel[]> {
+	try {
+		const parsed = JSON.parse((await env.STUDY_KV.get(`${teamId}:recentChannels:${userId}`)) || '[]');
+		return Array.isArray(parsed) ? parsed : [];
+	} catch {
+		return [];
+	}
 }
 
 /** 사용자의 오늘 집중 통계 — 누적 시간, 세션 개수 */

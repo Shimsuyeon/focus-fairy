@@ -5,6 +5,7 @@
 
 import { replyEphemeral, getBotToken, getUserTimezone, getUserToken } from '../utils/slack';
 import { MAX_AUTO_DURATION } from '../constants/messages';
+import { issueApiToken } from '../api/auth';
 
 export type TimezoneLabelMode = 'auto' | 'always' | 'never';
 
@@ -112,6 +113,10 @@ export async function handleSettings(
 ): Promise<Response> {
 	if (text === 'sync') {
 		return handleSyncSettings(env, teamId, userId, baseUrl);
+	}
+
+	if (text === 'extension') {
+		return handleExtensionSettings(env, teamId, userId, triggerId, baseUrl);
 	}
 
 	if (!triggerId) {
@@ -325,4 +330,83 @@ async function handleSyncSettings(
 			}] : []),
 		],
 	}), { headers: { 'Content-Type': 'application/json' } });
+}
+
+/**
+ * 크롬 익스텐션 연결 — 개인 API 토큰을 새로 발급해 본인에게만 보이는 모달로 보여준다.
+ * 재발급하면 이전 토큰은 무효화된다. (/settings extension, App Home 버튼 공용)
+ */
+export async function handleExtensionSettings(
+	env: Env,
+	teamId: string,
+	userId: string,
+	triggerId: string,
+	baseUrl?: string
+): Promise<Response> {
+	if (!triggerId) {
+		return replyEphemeral('모달을 열 수 없어요. 다시 시도해주세요!');
+	}
+
+	const botToken = await getBotToken(env, teamId);
+	if (!botToken) {
+		return replyEphemeral('봇 토큰을 찾을 수 없어요.');
+	}
+
+	const apiToken = await issueApiToken(env, teamId, userId);
+
+	const modal = {
+		trigger_id: triggerId,
+		view: {
+			type: 'modal',
+			callback_id: 'extension_token_modal',
+			title: { type: 'plain_text', text: '크롬 익스텐션 연결' },
+			close: { type: 'plain_text', text: '닫기' },
+			blocks: [
+				{
+					type: 'section',
+					text: {
+						type: 'mrkdwn',
+						text: ':fairy-wand: 아래 토큰을 집중요정 크롬 익스텐션 팝업에 붙여넣어 주세요.\n이 토큰은 *지금 한 번만* 보여요.',
+					},
+				},
+				{
+					type: 'section',
+					text: { type: 'mrkdwn', text: '```' + apiToken + '```' },
+				},
+				...(baseUrl ? [{
+					type: 'context',
+					elements: [{ type: 'mrkdwn', text: `서버 주소: \`${baseUrl}\`` }],
+				}] : []),
+				{ type: 'divider' },
+				{
+					type: 'context',
+					elements: [
+						{
+							type: 'mrkdwn',
+							text: '• 익스텐션에서 시작하면 마지막으로 `/start` 한 채널에 메시지가 올라가요.\n' +
+								'• 토큰을 다시 발급하면 이전 토큰은 바로 사용할 수 없게 돼요.\n' +
+								'• 토큰은 비밀번호처럼 다른 사람과 공유하지 마세요.',
+						},
+					],
+				},
+			],
+		},
+	};
+
+	const res = await fetch('https://slack.com/api/views.open', {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${botToken}`,
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(modal),
+	});
+
+	const data = (await res.json()) as { ok: boolean; error?: string };
+	if (!data.ok) {
+		console.error('Failed to open extension token modal:', data.error);
+		return replyEphemeral('모달을 열 수 없어요. 다시 시도해주세요!');
+	}
+
+	return new Response('', { status: 200 });
 }

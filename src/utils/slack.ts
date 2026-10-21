@@ -62,6 +62,9 @@ export async function getBotToken(env: Env, teamId: string): Promise<string | nu
 
 /** 채널에 메시지 전송 (chat.postMessage API) */
 export async function postMessage(env: Env, teamId: string, channel: string, text: string): Promise<boolean> {
+	// 채널 없이 시작한 세션 (익스텐션 '채널에 안 올리기', 레거시 세션)
+	if (!channel) return false;
+
 	const token = await getBotToken(env, teamId);
 	if (!token) {
 		console.error('No bot token for team:', teamId);
