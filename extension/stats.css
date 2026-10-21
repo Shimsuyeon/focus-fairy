@@ -1,0 +1,405 @@
+/* 팝업 오른쪽 칸 — 이번 달 통계 */
+
+.stats {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	min-height: 0;
+	padding: 14px 16px 16px;
+	overflow-y: auto;
+}
+
+.stats-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.stats .card {
+	padding: 12px 14px;
+	border-radius: 14px;
+}
+
+.month-nav {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px 4px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--card);
+	font-weight: 700;
+	font-size: 12px;
+}
+
+.month-nav .icon-btn {
+	padding: 0 6px;
+	font-size: 18px;
+	line-height: 1.2;
+}
+
+#content {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.label {
+	color: var(--muted);
+	font-size: 12px;
+	font-weight: 600;
+}
+
+h2 {
+	font-size: 14px;
+}
+
+/* ---------- 요약 ---------- */
+
+.summary-top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.total {
+	font-size: 24px;
+	font-weight: 800;
+	letter-spacing: -0.5px;
+	font-variant-numeric: tabular-nums;
+}
+
+.goal-box {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.goal-form {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.goal-form input {
+	width: 80px;
+	padding: 4px 8px;
+}
+
+button.chip.primary {
+	color: var(--accent-fg);
+}
+
+.progress {
+	position: relative;
+	height: 10px;
+	margin-top: 10px;
+	border-radius: 5px;
+	background: var(--surface);
+	overflow: visible;
+}
+
+.progress .fill {
+	height: 100%;
+	max-width: 100%;
+	border-radius: 5px;
+	background: var(--accent);
+	transition: width 0.4s ease;
+}
+
+.progress .pace {
+	position: absolute;
+	top: -4px;
+	bottom: -4px;
+	width: 2px;
+	border-radius: 1px;
+	background: var(--fg);
+	opacity: 0.55;
+}
+
+.progress-legend {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 8px;
+	font-size: 12px;
+}
+
+#progress-right b {
+	color: var(--accent);
+}
+
+/* ---------- 타일 ---------- */
+
+.tiles {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.stats .tile {
+	position: relative;
+	padding: 10px 12px;
+}
+
+.tile .value {
+	margin-top: 2px;
+	font-size: 16px;
+	font-weight: 800;
+	font-variant-numeric: tabular-nums;
+}
+
+.tile .sub {
+	margin-top: 1px;
+	color: var(--muted);
+	font-size: 11px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sub .up {
+	color: var(--focusing);
+	font-weight: 600;
+}
+
+.sub .down {
+	color: var(--danger);
+	font-weight: 600;
+}
+
+/* 목표까지 하루 — 마우스를 올리면 자세히 */
+.detail {
+	position: absolute;
+	top: calc(100% + 6px);
+	right: 0;
+	z-index: 5;
+	display: none;
+	grid-template-columns: auto auto;
+	gap: 6px 24px;
+	min-width: 240px;
+	margin: 0;
+	padding: 12px 14px;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: var(--card);
+	box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+#tile-need-card:hover .detail:not(:empty) {
+	display: grid;
+}
+
+.detail dt {
+	color: var(--muted);
+}
+
+.detail dd {
+	margin: 0;
+	text-align: right;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 차트 ---------- */
+
+.chart-card {
+	position: relative;
+}
+
+.chart-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 8px;
+}
+
+.segmented {
+	display: flex;
+	padding: 2px;
+	border-radius: 10px;
+	background: var(--surface);
+}
+
+.segmented button {
+	padding: 4px 12px;
+	border: none;
+	border-radius: 8px;
+	background: none;
+	color: var(--muted);
+	font-size: 12px;
+}
+
+.segmented button[aria-selected='true'] {
+	background: var(--card);
+	color: var(--fg);
+	box-shadow: var(--shadow);
+}
+
+.chart {
+	height: 190px;
+}
+
+.chart svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+
+.grid-line {
+	stroke: var(--line);
+	stroke-width: 1;
+}
+
+.axis-text {
+	fill: var(--faint);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+}
+
+.axis-text.weekend {
+	fill: var(--danger);
+	opacity: 0.7;
+}
+
+.axis-text.today {
+	fill: var(--accent);
+	font-weight: 700;
+	opacity: 1;
+}
+
+.line-actual {
+	fill: none;
+	stroke: var(--accent);
+	stroke-width: 2.5;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+}
+
+.area-actual {
+	fill: var(--accent);
+	opacity: 0.08;
+}
+
+.line-goal {
+	fill: none;
+	stroke: var(--faint);
+	stroke-width: 1.5;
+	stroke-dasharray: 5 4;
+}
+
+.bar {
+	fill: var(--accent);
+	opacity: 0.85;
+}
+
+.bar.today {
+	opacity: 1;
+}
+
+.bar.hover {
+	opacity: 1;
+	fill: var(--fg);
+}
+
+.today-line {
+	stroke: var(--accent);
+	stroke-width: 1;
+	stroke-dasharray: 3 3;
+	opacity: 0.6;
+}
+
+.hover-line {
+	stroke: var(--muted);
+	stroke-width: 1;
+}
+
+.hover-dot {
+	fill: var(--card);
+	stroke: var(--accent);
+	stroke-width: 2.5;
+}
+
+.chart-tip {
+	position: absolute;
+	z-index: 5;
+	min-width: 150px;
+	padding: 8px 10px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--card);
+	box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+	font-size: 12px;
+	pointer-events: none;
+	white-space: nowrap;
+}
+
+.chart-tip b {
+	display: block;
+	margin-bottom: 2px;
+}
+
+.legend {
+	display: flex;
+	justify-content: center;
+	gap: 18px;
+	margin-top: 8px;
+	color: var(--muted);
+	font-size: 12px;
+}
+
+.legend span {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.swatch {
+	display: inline-block;
+	width: 18px;
+	height: 0;
+	border-top: 2.5px solid var(--accent);
+}
+
+.swatch.goal {
+	border-top: 1.5px dashed var(--faint);
+}
+
+/* ---------- 카테고리 ---------- */
+
+.tag-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: 12px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.tag-row {
+	display: grid;
+	grid-template-columns: 80px minmax(0, 1fr) 110px;
+	align-items: center;
+	gap: 12px;
+}
+
+.tag-row .bar-track {
+	height: 8px;
+	border-radius: 4px;
+	background: var(--surface);
+}
+
+.tag-row .bar-fill {
+	height: 100%;
+	border-radius: 4px;
+	background: var(--accent);
+}
+
+.tag-row .amount {
+	text-align: right;
+	color: var(--muted);
+	font-variant-numeric: tabular-nums;
+}

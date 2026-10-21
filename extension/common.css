@@ -1,0 +1,170 @@
+/* 팝업 공용 토큰과 기본 컨트롤 */
+
+:root {
+	--bg: #f7f6fb;
+	--card: #ffffff;
+	--fg: #1f1d2b;
+	--muted: #6b6880;
+	--faint: #a3a0b5;
+	--line: #e6e3f0;
+	--surface: #f1eff8;
+	--accent: #6d4aff;
+	--accent-soft: #ece7ff;
+	--accent-fg: #ffffff;
+	--focusing: #22a06b;
+	--paused: #e8930c;
+	--danger: #e5484d;
+	--shadow: 0 1px 2px rgb(31 29 43 / 6%), 0 1px 8px rgb(31 29 43 / 4%);
+	color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #15141b;
+		--card: #1e1d26;
+		--fg: #ecebf3;
+		--muted: #a19eb5;
+		--faint: #6b6880;
+		--line: #2f2d3a;
+		--surface: #282733;
+		--accent: #9b85ff;
+		--accent-soft: #2c2645;
+		--accent-fg: #14131a;
+		--focusing: #3dd68c;
+		--paused: #f5a623;
+		--shadow: none;
+		color-scheme: dark;
+	}
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--fg);
+	font: 13px/1.45 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Segoe UI', sans-serif;
+}
+
+h1,
+h2,
+h3,
+p {
+	margin: 0;
+}
+
+input,
+textarea,
+select {
+	width: 100%;
+	padding: 8px 10px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--card);
+	color: var(--fg);
+	font: inherit;
+	resize: vertical;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+button:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: -1px;
+}
+
+button {
+	padding: 9px 12px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--card);
+	color: var(--fg);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+	filter: brightness(0.97);
+}
+
+button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+button.primary {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: var(--accent-fg);
+}
+
+button.danger {
+	color: var(--danger);
+}
+
+button.link {
+	border: none;
+	background: none;
+	padding: 2px 4px;
+	font-weight: 500;
+	color: var(--muted);
+}
+
+button.link:hover {
+	color: var(--fg);
+}
+
+button.chip {
+	padding: 3px 9px;
+	border-radius: 8px;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--muted);
+}
+
+.icon-btn {
+	border: none;
+	background: none;
+	padding: 4px 6px;
+	font-size: 16px;
+	color: var(--muted);
+}
+
+.card {
+	padding: 16px;
+	border: 1px solid var(--line);
+	border-radius: 16px;
+	background: var(--card);
+	box-shadow: var(--shadow);
+}
+
+.muted {
+	color: var(--muted);
+}
+
+.hint {
+	color: var(--muted);
+	font-size: 12px;
+}
+
+.error {
+	padding: 8px 10px;
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--danger) 12%, transparent);
+	color: var(--danger);
+}
+
+code {
+	padding: 0 4px;
+	border-radius: 4px;
+	background: var(--surface);
+	font-size: 12px;
+}
+
+[hidden] {
+	display: none !important;
+}

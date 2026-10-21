@@ -1,6 +1,7 @@
 import { env, SELF } from 'cloudflare:test';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { issueApiToken } from '../src/api/auth';
+import { getTodayKey } from '../src/utils/date';
 
 const TEAM = 'T_API';
 const USER = 'U_API';
@@ -172,5 +173,64 @@ describe('extension API', () => {
 		});
 		expect(res.status).toBe(204);
 		expect(res.headers.get('Access-Control-Allow-Origin')).toBe('chrome-extension://abc');
+	});
+
+	describe('대시보드', () => {
+		const OTHER = 'U_API_OTHER';
+
+		beforeEach(async () => {
+			await env.STUDY_KV.delete(`${TEAM}:checkin:${OTHER}`);
+			await env.STUDY_KV.delete(`${TEAM}:goal:${USER}`);
+		});
+
+		it('GET /api/team — 오늘 집중한 팀원 상태, 집중 중이 먼저', async () => {
+			const todayKey = getTodayKey();
+			await env.STUDY_KV.put(`${TEAM}:today:${todayKey}`, JSON.stringify([USER, OTHER]));
+			await env.STUDY_KV.put(`${TEAM}:checkin:${OTHER}`, JSON.stringify({ time: Date.now() - 60_000, label: '비밀 계획', tag: 'study' }));
+
+			const json = await getJson(await callApi('/api/team', token));
+			expect(json.members.map((m: any) => [m.id, m.state, m.isMe])).toEqual([
+				[OTHER, 'focusing', false],
+				[USER, 'idle', true],
+			]);
+			expect(json.members[0].tag).toBe('study');
+			expect(json.members[0].label).toBeUndefined();
+		});
+
+		it('GET /api/stats — 날짜별 합계와 목표', async () => {
+			const todayKey = getTodayKey();
+			const sessions = [
+				{ userId: USER, start: 0, end: 0, duration: 30 * 60_000, tag: 'study' },
+				{ userId: OTHER, start: 0, end: 0, duration: 99 * 60_000 },
+			];
+			await env.STUDY_KV.put(`${TEAM}:sessions:${todayKey}`, JSON.stringify(sessions));
+			await getJson(await callApi('/api/goal', token, { hours: 40 }));
+
+			const json = await getJson(await callApi('/api/stats', token));
+			expect(json.month).toBe(todayKey.slice(0, 7));
+			expect(json.days.find((d: any) => d.date === todayKey).ms).toBe(30 * 60_000);
+			expect(json.totalMs).toBeGreaterThanOrEqual(30 * 60_000);
+			expect(json.byTag.study).toBeGreaterThanOrEqual(30 * 60_000);
+			expect(json.goalMs).toBe(40 * 60 * 60_000);
+
+			expect((await callApi('/api/stats?month=2026-13', token)).status).toBe(400);
+		});
+
+		it('POST /api/goal — 0이면 해제, 잘못된 값은 400', async () => {
+			await callApi('/api/goal', token, { hours: 10 });
+			expect((await getJson(await callApi('/api/goal', token, { hours: 0 }))).goalMs).toBeNull();
+			expect(await env.STUDY_KV.get(`${TEAM}:goal:${USER}`)).toBeNull();
+			expect((await callApi('/api/goal', token, { hours: -1 })).status).toBe(400);
+		});
+
+		it('POST /api/session/update — 진행 중 세션의 카테고리·계획 수정', async () => {
+			expect((await callApi('/api/session/update', token, { tag: 'study' })).status).toBe(409);
+
+			await callApi('/api/session/start', token, { label: '처음 계획', channelId: null });
+			const updated = await getJson(await callApi('/api/session/update', token, { tag: 'reading', label: '바뀐 계획' }));
+			expect(updated.session.tag).toBe('reading');
+			expect(updated.session.label).toBe('바뀐 계획');
+			expect((await callApi('/api/session/update', token, { tag: 'hacking' })).status).toBe(400);
+		});
 	});
 });

@@ -1,5 +1,5 @@
 /**
- * 집중요정 API 클라이언트 + 시간 표시 유틸 (popup / background 공용)
+ * 집중요정 API 클라이언트 + 시간 표시 유틸 (팝업 / background 공용)
  */
 
 export const DEFAULT_SERVER = 'https://focus-fairy.suyeonshim.workers.dev';
@@ -148,7 +148,10 @@ export async function api(path, { method = 'GET', body, account } = {}) {
 	return data;
 }
 
-/** 휴식 시간을 뺀 순수 집중 경과 시간 */
+/** 서버 카테고리(SESSION_TAGS) 값별 아이콘 */
+export const TAG_ICONS = { study: '📚', side: '💻', reading: '📖', exercise: '🏃', etc: '✨' };
+
+/** 휴식 시간을 뺀 순수 집중 경과 시간 (세션 / 팀원 상태 모두) */
 export function focusedMs(session, now = Date.now()) {
 	if (!session || session.state === 'idle' || !session.startTime) return 0;
 	const end = session.state === 'paused' && session.pausedAt ? session.pausedAt : now;

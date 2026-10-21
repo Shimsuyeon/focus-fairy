@@ -2,7 +2,7 @@
 	"manifest_version": 3,
 	"name": "집중요정",
 	"description": "Slack에 들어가지 않고 집중요정 세션을 시작·일시정지·종료해요.",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"icons": {
 		"16": "icons/icon16.png",
 		"32": "icons/icon32.png",

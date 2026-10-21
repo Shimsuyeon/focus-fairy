@@ -6,6 +6,7 @@
  */
 
 import { authenticateRequest, type ApiIdentity } from './auth';
+import { getTeamStatus, getMonthStats, setMonthlyGoal, updateRunningSession } from './dashboard';
 import { beginSession, getUserSessionState, getUserTodayStats, getRecentChannels } from '../services/session';
 import { handlePause, handleResume } from '../commands/pause';
 import { prepareEndSession, completeEndSession } from '../commands/end';
@@ -84,6 +85,14 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 			return resumeSession(request, env, identity);
 		case 'POST /api/session/end':
 			return endSession(request, env, identity);
+		case 'POST /api/session/update':
+			return updateSession(request, env, identity);
+		case 'GET /api/team':
+			return json(request, { ok: true, members: await getTeamStatus(env, identity) });
+		case 'GET /api/stats':
+			return getStats(request, env, identity, url);
+		case 'POST /api/goal':
+			return setGoal(request, env, identity);
 		default:
 			return apiError(request, 404, 'not_found', '알 수 없는 API예요.');
 	}
@@ -219,4 +228,32 @@ async function endSession(request: Request, env: Env, { teamId, userId }: ApiIde
 	const channelId = checkin.msgChannelId || '';
 	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin, tzInfo, lunchDeducted);
 	return json(request, { ok: true, duration, durationLabel, session: { state: 'idle' } });
+}
+
+async function updateSession(request: Request, env: Env, identity: ApiIdentity): Promise<Response> {
+	const result = await updateRunningSession(env, identity, await readBody(request));
+	if (result === 'not_started') {
+		return apiError(request, 409, 'not_started', '진행 중인 세션이 없어요.');
+	}
+	if (result === 'invalid_tag') {
+		return apiError(request, 400, 'invalid_tag', '알 수 없는 카테고리예요.');
+	}
+	return json(request, { ok: true, session: await getUserSessionState(env, identity.teamId, identity.userId) });
+}
+
+async function getStats(request: Request, env: Env, identity: ApiIdentity, url: URL): Promise<Response> {
+	const stats = await getMonthStats(env, identity, url.searchParams.get('month'));
+	if (!stats) {
+		return apiError(request, 400, 'invalid_month', 'month는 YYYY-MM 형식이어야 해요.');
+	}
+	return json(request, { ok: true, ...stats });
+}
+
+/** body.hours — 월 목표 시간. 0 / null 이면 해제 */
+async function setGoal(request: Request, env: Env, identity: ApiIdentity): Promise<Response> {
+	const goalMs = await setMonthlyGoal(env, identity, (await readBody(request)).hours);
+	if (goalMs === false) {
+		return apiError(request, 400, 'invalid_goal', '목표 시간을 확인해주세요. (최대 744시간)');
+	}
+	return json(request, { ok: true, goalMs });
 }

@@ -7,7 +7,7 @@
 
 import { api, getAccounts, setAccountState, getChannelChoice, toStartChannelId, focusedMs, badgeText } from './api.js';
 
-const COLORS = { focusing: '#7C5CFF', paused: '#F5A623', error: '#E5484D' };
+const COLORS = { focusing: '#22A06B', paused: '#E8930C', error: '#E5484D' };
 
 function setupAlarms() {
 	chrome.alarms.create('tick', { periodInMinutes: 1 });
@@ -23,7 +23,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 	else renderBadge();
 });
 
-// popup에서 세션·계정을 바꾸면 storage가 바뀌므로 배지도 바로 따라간다
+// 팝업에서 세션·계정을 바꾸면 storage가 바뀌므로 배지도 바로 따라간다
 chrome.storage.onChanged.addListener((changes, area) => {
 	if (area !== 'local') return;
 	if ('sessions' in changes || 'authErrors' in changes || 'activeAccountId' in changes || 'accounts' in changes) renderBadge();

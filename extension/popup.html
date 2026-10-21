@@ -2,83 +2,203 @@
 <html lang="ko">
 	<head>
 		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>집중요정</title>
-		<link rel="stylesheet" href="popup.css" />
+		<link rel="stylesheet" href="common.css" />
+		<link rel="stylesheet" href="panel.css" />
+		<link rel="stylesheet" href="stats.css" />
 	</head>
 	<body>
-		<header>
-			<img src="icons/icon32.png" alt="" width="20" height="20" />
-			<h1 id="app-title">집중요정</h1>
-			<select id="workspace" class="workspace" title="워크스페이스" hidden></select>
-			<button id="open-settings" class="icon-btn" title="이 워크스페이스 설정" hidden>⚙︎</button>
-		</header>
+		<div class="panel">
+			<header class="topbar">
+				<img src="icons/icon32.png" alt="" width="22" height="22" />
+				<h1 id="app-title">집중요정</h1>
+				<select id="workspace" class="workspace" title="워크스페이스" hidden></select>
+				<button id="open-settings" class="icon-btn" title="이 워크스페이스 설정" hidden>⚙︎</button>
+			</header>
 
-		<p id="error" class="error" hidden></p>
+			<p id="error" class="error" hidden></p>
 
-		<!-- 토큰 설정 -->
-		<section id="view-setup" hidden>
-			<h2 id="setup-title">워크스페이스 연결</h2>
-			<p class="hint">
-				Slack 집중요정 <b>홈 탭 → 크롬 익스텐션 연결</b> 버튼이나 <code>/settings extension</code> 으로 토큰을 발급받아 붙여넣어 주세요.
-			</p>
-			<label>
-				토큰
-				<input id="token" type="password" placeholder="ff_..." autocomplete="off" spellcheck="false" />
-			</label>
-			<details>
-				<summary>서버 주소</summary>
-				<input id="server-url" type="url" spellcheck="false" />
-			</details>
-			<div class="row">
-				<button id="save-config" class="primary">연결하기</button>
-				<button id="cancel-setup" hidden>취소</button>
-			</div>
-			<button id="disconnect" class="link danger" hidden>이 워크스페이스 연결 해제</button>
-		</section>
-
-		<!-- 세션 -->
-		<section id="view-session" hidden>
-			<div class="status">
-				<span id="state-label" class="state"></span>
-				<div id="clock" class="clock">0:00:00</div>
-				<p id="session-meta" class="meta" hidden></p>
-			</div>
-
-			<div id="idle-form" hidden>
-				<textarea id="plan" rows="2" placeholder="오늘의 계획 (선택, 줄바꿈으로 여러 개)"></textarea>
-				<select id="tag">
-					<option value="">카테고리 선택 안 함</option>
-				</select>
-				<select id="channel" title="시작·종료 메시지를 올릴 채널">
-					<option value="__none__">💤 채널에 안 올리기 (기록만)</option>
-				</select>
-				<button id="btn-start" class="primary wide">🧚 집중 시작</button>
-				<p id="channel-hint" class="hint" hidden>
-					Slack 채널에서 <code>/start</code> 를 한 번 하면 그 채널을 여기서 고를 수 있어요. 지금은 기록만 돼요.
+			<!-- 토큰 설정 -->
+			<section id="view-setup" class="setup" hidden>
+				<h2 id="setup-title">워크스페이스 연결</h2>
+				<p class="hint">
+					Slack 집중요정 <b>홈 탭 → 크롬 익스텐션 연결</b> 버튼이나 <code>/settings extension</code> 으로 토큰을 발급받아 붙여넣어 주세요.
 				</p>
-			</div>
-
-			<div id="active-actions" class="row" hidden>
-				<button id="btn-pause">🌙 일시정지</button>
-				<button id="btn-resume" class="primary">🪄 재개</button>
-				<button id="btn-end" class="danger">종료</button>
-			</div>
-
-			<div id="end-confirm" class="confirm" hidden>
-				<p id="end-confirm-text"></p>
-				<button id="btn-end-confirm" class="primary wide"></button>
-				<div class="manual">
-					<span>직접 입력</span>
-					<input id="manual-h" type="number" min="0" max="24" placeholder="0" />시간
-					<input id="manual-m" type="number" min="0" max="59" placeholder="0" />분
-					<button id="btn-end-manual">기록</button>
+				<label>
+					토큰
+					<input id="token" type="password" placeholder="ff_..." autocomplete="off" spellcheck="false" />
+				</label>
+				<details>
+					<summary>서버 주소</summary>
+					<input id="server-url" type="url" spellcheck="false" />
+				</details>
+				<div class="row">
+					<button id="save-config" class="primary">연결하기</button>
+					<button id="cancel-setup" hidden>취소</button>
 				</div>
-				<button id="btn-end-cancel" class="link">취소</button>
-			</div>
+				<button id="disconnect" class="link danger" hidden>이 워크스페이스 연결 해제</button>
+			</section>
 
-			<p id="today" class="today"></p>
+			<!-- 세션 -->
+			<main id="view-session" class="session" hidden>
+				<section class="hero">
+					<div class="hero-top">
+						<span id="state-label" class="state"><i class="dot"></i><span></span></span>
+						<button id="btn-edit" class="chip" hidden>수정하기</button>
+					</div>
+					<div id="clock" class="clock"></div>
+					<p id="session-meta" class="meta"></p>
+					<p id="session-plan" class="plan" hidden></p>
+				</section>
+
+				<section class="tags-section">
+					<div id="tags" class="tags" role="radiogroup" aria-label="카테고리"></div>
+				</section>
+
+				<section id="idle-form" class="form" hidden>
+					<textarea id="plan" rows="2" placeholder="오늘의 계획 (선택, 줄바꿈으로 여러 개)"></textarea>
+					<label class="inline">
+						<span>채널</span>
+						<select id="channel" title="시작·종료 메시지를 올릴 채널">
+							<option value="__none__">💤 채널에 안 올리기 (기록만)</option>
+						</select>
+					</label>
+					<p id="channel-hint" class="hint" hidden>
+						Slack 채널에서 <code>/start</code> 를 한 번 하면 그 채널을 여기서 고를 수 있어요. 지금은 기록만 돼요.
+					</p>
+				</section>
+
+				<section id="edit-form" class="form" hidden>
+					<textarea id="edit-plan" rows="3" placeholder="계획"></textarea>
+					<div class="row">
+						<button id="btn-edit-save" class="primary">저장</button>
+						<button id="btn-edit-cancel">취소</button>
+					</div>
+				</section>
+
+				<section class="team">
+					<div class="team-head">
+						<h3 id="team-title">오늘 함께 집중</h3>
+						<span id="team-count" class="muted"></span>
+					</div>
+					<ul id="team-list" class="team-list"></ul>
+					<p id="team-empty" class="hint" hidden>오늘은 아직 아무도 시작하지 않았어요.</p>
+				</section>
+
+				<footer class="actions">
+					<div id="end-confirm" class="confirm" hidden>
+						<p id="end-confirm-text"></p>
+						<button id="btn-end-confirm" class="primary big"></button>
+						<div class="manual">
+							<span>직접 입력</span>
+							<input id="manual-h" type="number" min="0" max="24" placeholder="0" />시간
+							<input id="manual-m" type="number" min="0" max="59" placeholder="0" />분
+							<button id="btn-end-manual">기록</button>
+						</div>
+						<button id="btn-end-cancel" class="link">취소</button>
+					</div>
+
+					<div id="main-actions" class="main-actions">
+						<button id="btn-start" class="primary big">🧚 집중 시작</button>
+						<button id="btn-pause" class="primary big">☕ 쉬어가기</button>
+						<button id="btn-resume" class="primary big">🪄 다시 집중</button>
+						<button id="btn-end" class="big outline">집중 종료</button>
+					</div>
+				</footer>
+			</main>
+		</div>
+
+		<section class="stats">
+			<header class="stats-head">
+				<h2>집중 통계</h2>
+				<div class="month-nav">
+					<button id="prev-month" class="icon-btn" title="이전 달">‹</button>
+					<span id="month-label"></span>
+					<button id="next-month" class="icon-btn" title="다음 달">›</button>
+				</div>
+			</header>
+
+			<p id="stats-error" class="error" hidden></p>
+			<p id="no-account" class="card muted" hidden>왼쪽에서 워크스페이스를 먼저 연결해주세요.</p>
+
+			<div id="content" hidden>
+				<section class="card summary">
+					<div class="summary-top">
+						<div>
+							<p class="label">이번 달 집중</p>
+							<p id="month-total" class="total"></p>
+						</div>
+						<div class="goal-box">
+							<span id="goal-text" class="muted"></span>
+							<button id="edit-goal" class="chip">목표 설정</button>
+							<form id="goal-form" class="goal-form" hidden>
+								<input id="goal-hours" type="number" min="0" max="744" step="1" placeholder="80" />
+								<span>시간</span>
+								<button type="submit" class="chip primary">저장</button>
+								<button type="button" id="cancel-goal" class="chip">취소</button>
+							</form>
+						</div>
+					</div>
+					<div class="progress" id="progress">
+						<div id="progress-fill" class="fill"></div>
+						<div id="progress-pace" class="pace" title="오늘까지 목표 페이스"></div>
+					</div>
+					<div class="progress-legend">
+						<span id="progress-left" class="muted"></span>
+						<span id="progress-right"></span>
+					</div>
+				</section>
+
+				<section class="tiles">
+					<div class="card tile">
+						<p class="label">오늘</p>
+						<p id="tile-today" class="value"></p>
+						<p id="tile-today-sub" class="sub"></p>
+					</div>
+					<div class="card tile">
+						<p class="label">일 평균</p>
+						<p id="tile-avg" class="value"></p>
+						<p id="tile-avg-sub" class="sub"></p>
+					</div>
+					<div class="card tile" id="tile-need-card">
+						<p class="label">목표까지 하루</p>
+						<p id="tile-need" class="value"></p>
+						<p id="tile-need-sub" class="sub"></p>
+						<dl id="need-detail" class="detail"></dl>
+					</div>
+					<div class="card tile">
+						<p class="label">집중한 날</p>
+						<p id="tile-days" class="value"></p>
+						<p id="tile-days-sub" class="sub"></p>
+					</div>
+				</section>
+
+				<section class="card chart-card">
+					<div class="chart-head">
+						<h2 id="chart-title">누적 집중 시간</h2>
+						<div class="segmented" role="tablist">
+							<button data-mode="cumulative" aria-selected="true">누적</button>
+							<button data-mode="daily" aria-selected="false">일별</button>
+						</div>
+					</div>
+					<div id="chart" class="chart"></div>
+					<div id="chart-tip" class="chart-tip" hidden></div>
+					<div class="legend">
+						<span><i class="swatch actual"></i>실제</span>
+						<span id="legend-goal"><i class="swatch goal"></i><span id="legend-goal-text">목표 페이스</span></span>
+					</div>
+				</section>
+
+				<section class="card">
+					<h2>카테고리</h2>
+					<ul id="tag-list" class="tag-list"></ul>
+					<p id="tag-empty" class="muted" hidden>이 달에는 아직 기록이 없어요.</p>
+				</section>
+			</div>
 		</section>
 
-		<script type="module" src="popup.js"></script>
+		<script type="module" src="panel.js"></script>
+		<script type="module" src="stats.js"></script>
 	</body>
 </html>
