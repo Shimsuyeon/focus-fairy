@@ -11,7 +11,11 @@ Sessions are saved in the same place as the Slack commands. You can start in the
 
 ## Install
 
-The extension isn't on the Chrome Web Store yet, so install it in **developer mode**.
+:::note[Coming to the Chrome Web Store]
+We're preparing a Chrome Web Store listing. Once it's live, an **install link** will appear here so you can install with one click and get automatic updates. Until then, install it in developer mode as below.
+:::
+
+### Install in developer mode
 
 1. Download the [GitHub repository](https://github.com/Shimsuyeon/focus-fairy) (**Code → Download ZIP** and unzip, or `git clone`).
 2. Open `chrome://extensions` and turn on **Developer mode** (top right).
@@ -111,6 +115,9 @@ Yes. The extension syncs whenever you open the popup and every 5 minutes.
 
 **What if I end a session that ran for more than 6 hours?**
 Same as [`/end`](/en/commands/end/) in Slack: above the workspace's auto-record threshold (6 hours by default, configurable in `/settings`) you're asked to confirm, and you can enter the actual focus time yourself.
+
+**What information is stored?**
+See the [privacy policy](/en/privacy/). The extension stores only your connection token and settings in the browser, and never reads the websites you visit or your tabs.
 
 **Does Slack status sync still work?**
 Yes. If you connected [`/settings sync`](/en/settings/sync/), starting and ending from the extension updates your status too.

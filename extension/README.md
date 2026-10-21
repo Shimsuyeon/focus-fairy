@@ -2,7 +2,9 @@
 
 Slack에 들어가지 않고 툴바 팝업에서 집중 세션을 시작·일시정지·재개·종료하고, 같은 화면에서 이번 달 기록을 봐요. 기록은 Slack 명령어와 같은 KV에 저장되므로 어디서 시작하든 서로 동기화돼요.
 
-## 설치 (개발자 모드)
+## 설치
+
+크롬 웹스토어 등록을 준비 중이에요 (Unlisted). 그 전까지는 개발자 모드로 설치해요.
 
 1. `chrome://extensions` 접속 → 오른쪽 위 **개발자 모드** 켜기
 2. **압축해제된 확장 프로그램을 로드합니다** → 이 `extension/` 폴더 선택
@@ -40,7 +42,18 @@ Slack에 들어가지 않고 툴바 팝업에서 집중 세션을 시작·일시
 
 ## 로컬 개발
 
-`npm run dev` 로 워커를 띄운 뒤 팝업 설정의 **서버 주소**를 `http://localhost:8787` 로 바꾸면 돼요.
+`npm run dev` 로 워커를 띄운 뒤 팝업 설정의 **서버 주소**를 `http://localhost:8787` 로 바꾸면 돼요. `extension/` 폴더의 manifest에는 localhost 권한이 들어 있어요.
+
+## 웹스토어 제출용 패키지
+
+```bash
+npm run pack:extension
+# → dist/focus-fairy-extension-<version>.zip
+```
+
+`extension/` 을 복사하면서 manifest에서 개발용 localhost 권한·content script 매치와 README를 빼고 zip으로 묶어요. 새 버전을 올릴 때는 `manifest.json` 의 `version` 을 먼저 올려주세요.
+
+스토어 등록 문구·권한 설명·스크린샷은 [`store/`](../store/) 에 있어요. 개인정보처리방침: https://focus-fairy-docs.pages.dev/privacy/
 
 ## API
 

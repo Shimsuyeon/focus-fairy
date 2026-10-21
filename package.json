@@ -4,6 +4,7 @@
 	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy",
+		"pack:extension": "node scripts/pack-extension.mjs",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest",

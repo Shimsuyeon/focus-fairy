@@ -37,6 +37,7 @@ export default defineConfig({
 					translations: { en: 'Settings' },
 					autogenerate: { directory: 'settings' },
 				},
+				{ label: '개인정보처리방침', translations: { en: 'Privacy policy' }, slug: 'privacy' },
 			],
 		}),
 	],
