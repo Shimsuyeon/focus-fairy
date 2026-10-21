@@ -46,6 +46,13 @@ describe('extension API', () => {
 		expect((await callApi('/api/session', 'ff_wrong')).status).toBe(401);
 	});
 
+	it('발급 시 저장한 워크스페이스 / 사용자 이름을 돌려준다', async () => {
+		const named = await issueApiToken(env, TEAM, USER, { teamName: '모각코 스터디', userName: '수연' });
+		const json = await getJson(await callApi('/api/session', named));
+		expect(json.workspace).toEqual({ id: TEAM, name: '모각코 스터디' });
+		expect(json.user).toEqual({ id: USER, name: '수연' });
+	});
+
 	it('재발급하면 이전 토큰은 무효화된다', async () => {
 		const next = await issueApiToken(env, TEAM, USER);
 		expect((await callApi('/api/session', token)).status).toBe(401);
@@ -56,6 +63,7 @@ describe('extension API', () => {
 		const json = await getJson(await callApi('/api/session', token));
 		expect(json.ok).toBe(true);
 		expect(json.session.state).toBe('idle');
+		expect(json.workspace).toEqual({ id: TEAM, name: TEAM });
 		expect(json.channels).toEqual([]);
 		expect(json.defaultChannelId).toBeNull();
 		expect(json.tags.length).toBeGreaterThan(0);

@@ -50,6 +50,26 @@ h1 {
 	font-size: 14px;
 }
 
+h2 {
+	margin: 0;
+	font-size: 13px;
+}
+
+select.workspace {
+	flex: 1;
+	min-width: 0;
+	padding: 4px 6px;
+	border-color: transparent;
+	background: none;
+	font-weight: 700;
+	font-size: 14px;
+	cursor: pointer;
+}
+
+select.workspace:hover {
+	background: var(--surface);
+}
+
 section {
 	display: flex;
 	flex-direction: column;

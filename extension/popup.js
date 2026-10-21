@@ -1,4 +1,21 @@
-import { api, ApiError, getConfig, saveConfig, clearConfig, getChannelChoice, NO_CHANNEL, focusedMs, formatClock, formatDuration } from './api.js';
+import {
+	api,
+	ApiError,
+	DEFAULT_SERVER,
+	NO_CHANNEL,
+	getAccounts,
+	setActiveAccount,
+	saveAccount,
+	removeAccount,
+	normalizeServerUrl,
+	setAccountState,
+	getChannelChoice,
+	setChannelChoice,
+	toStartChannelId,
+	focusedMs,
+	formatClock,
+	formatDuration,
+} from './api.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -8,8 +25,12 @@ const STATE_LABEL = {
 	paused: '🌙 일시정지 중',
 };
 
+const ADD_WORKSPACE = '__add__';
+
+let account = null; // 활성 계정
 let session = null;
 let clockTimer = null;
+let setupMode = 'add'; // 'add' | 'edit'
 
 // ---------- 공통 ----------
 
@@ -24,9 +45,9 @@ async function run(button, task) {
 	try {
 		await task();
 	} catch (err) {
-		if (err instanceof ApiError && err.status === 401) {
-			await chrome.storage.local.set({ authError: true });
-			showSetup(true);
+		if (err instanceof ApiError && err.status === 401 && account) {
+			await setAccountState(account.id, { authError: true });
+			await showSetup('edit');
 		}
 		showError(err.message || '문제가 생겼어요.');
 	} finally {
@@ -36,60 +57,152 @@ async function run(button, task) {
 
 async function setSession(next) {
 	session = next;
-	await chrome.storage.local.set({ session: next, authError: false });
+	await setAccountState(account.id, { session: next, authError: false });
 	renderSession();
+	await renderWorkspaces();
 }
 
-// ---------- 설정 ----------
+// ---------- 워크스페이스 ----------
 
-async function showSetup(canCancel) {
-	const { serverUrl, token } = await getConfig();
-	$('server-url').value = serverUrl;
+function workspaceLabel(a, all) {
+	const name = a.teamName || '연결 확인 중…';
+	// 같은 워크스페이스를 여러 사용자로 연결한 경우에만 사용자 이름을 붙인다
+	const ambiguous = all.filter((b) => b.teamName && b.teamName === a.teamName).length > 1;
+	return ambiguous && a.userName ? `${name} (${a.userName})` : name;
+}
+
+/** 헤더 드롭다운 — 다른 워크스페이스가 집중 중이면 아이콘으로 표시 */
+async function renderWorkspaces() {
+	const { accounts } = await getAccounts();
+	const { sessions = {} } = await chrome.storage.local.get('sessions');
+	const select = $('workspace');
+
+	select.replaceChildren();
+	for (const a of accounts) {
+		const state = sessions[a.id]?.state;
+		const icon = state === 'focusing' ? '⏳ ' : state === 'paused' ? '🌙 ' : '';
+		const option = new Option(icon + workspaceLabel(a, accounts), a.id);
+		select.append(option);
+	}
+	select.append(new Option('＋ 워크스페이스 추가', ADD_WORKSPACE));
+	select.value = account?.id || ADD_WORKSPACE;
+
+	select.hidden = accounts.length === 0;
+	$('app-title').hidden = accounts.length > 0;
+}
+
+$('workspace').addEventListener('change', async () => {
+	const value = $('workspace').value;
+	if (value === ADD_WORKSPACE) {
+		await showSetup('add');
+		return;
+	}
+	await setActiveAccount(value);
+	await loadSession();
+});
+
+// ---------- 설정 (추가 / 수정) ----------
+
+async function showSetup(mode) {
+	setupMode = mode;
+	const { accounts } = await getAccounts();
+	const editing = mode === 'edit' && account;
+
+	$('setup-title').textContent = editing ? `${account.teamName || '워크스페이스'} 설정` : '워크스페이스 연결';
+	$('server-url').value = editing ? account.serverUrl : accounts.at(-1)?.serverUrl || DEFAULT_SERVER;
 	$('token').value = '';
-	$('token').placeholder = token ? '새 토큰 붙여넣기 (비우면 유지)' : 'ff_...';
-	$('cancel-setup').hidden = !canCancel || !token;
-	$('disconnect').hidden = !token;
+	$('token').placeholder = editing ? '새 토큰 붙여넣기 (비우면 유지)' : 'ff_...';
+	$('save-config').textContent = editing ? '저장' : '연결하기';
+	$('cancel-setup').hidden = accounts.length === 0;
+	$('disconnect').hidden = !editing;
 	$('open-settings').hidden = true;
 	$('view-session').hidden = true;
 	$('view-setup').hidden = false;
+	clearInterval(clockTimer);
+	await renderWorkspaces();
+	if (mode === 'add') $('workspace').value = ADD_WORKSPACE;
 	$('token').focus();
 }
 
-$('open-settings').addEventListener('click', () => showSetup(true));
+$('open-settings').addEventListener('click', () => showSetup('edit'));
 $('cancel-setup').addEventListener('click', () => loadSession());
 
+/** 토큰을 서버에 확인하고 워크스페이스 정보를 채워 저장 */
 $('save-config').addEventListener('click', (e) =>
 	run(e.currentTarget, async () => {
-		const current = await getConfig();
-		const token = $('token').value.trim() || current.token;
+		const editing = setupMode === 'edit' && account;
+		const token = $('token').value.trim() || (editing ? account.token : '');
 		if (!token) throw new Error('토큰을 입력해주세요.');
-		await saveConfig({ serverUrl: $('server-url').value.trim(), token });
+
+		const candidate = {
+			...(editing ? account : { id: crypto.randomUUID() }),
+			serverUrl: normalizeServerUrl($('server-url').value),
+			token,
+		};
+
+		let data;
+		try {
+			data = await api('/api/session', { account: candidate });
+		} catch (err) {
+			// 저장 전 확인 실패 — 기존 계정의 인증 오류로 처리하지 않는다
+			throw new Error(err.status === 401 ? '토큰이 유효하지 않아요. 다시 확인해주세요.' : err.message);
+		}
+
+		await saveAccount({
+			...candidate,
+			teamId: data.workspace?.id,
+			teamName: data.workspace?.name,
+			userId: data.user?.id,
+			userName: data.user?.name,
+		});
+		await setAccountState(candidate.id, { session: data.session, authError: false });
+		await setActiveAccount(candidate.id);
 		await loadSession();
 	})
 );
 
 $('disconnect').addEventListener('click', async () => {
-	await clearConfig();
+	await removeAccount(account.id);
+	account = null;
 	session = null;
-	showSetup(false);
+	const { active } = await getAccounts();
+	if (active) await loadSession();
+	else await showSetup('add');
 });
 
 // ---------- 세션 ----------
 
 async function loadSession() {
+	showError('');
+	account = (await getAccounts()).active;
+	if (!account) {
+		await showSetup('add');
+		return;
+	}
+
 	$('view-setup').hidden = true;
 	$('view-session').hidden = false;
 	$('open-settings').hidden = false;
+	$('end-confirm').hidden = true;
 
 	// 캐시로 먼저 그리고 서버 응답으로 갱신
-	const cached = await chrome.storage.local.get('session');
-	if (cached.session) {
-		session = cached.session;
-		renderSession();
-	}
+	const { sessions = {} } = await chrome.storage.local.get('sessions');
+	session = sessions[account.id] || null;
+	$('today').textContent = '';
+	renderSession();
+	await renderWorkspaces();
 
+	const loading = account.id;
 	await run(null, async () => {
 		const data = await api('/api/session');
+		if (account?.id !== loading) return; // 응답 오기 전에 워크스페이스를 바꾼 경우
+
+		// 워크스페이스/사용자 이름이 바뀌었으면 갱신
+		if (data.workspace && (data.workspace.name !== account.teamName || data.user?.name !== account.userName)) {
+			account = { ...account, teamId: data.workspace.id, teamName: data.workspace.name, userId: data.user?.id, userName: data.user?.name };
+			await saveAccount(account);
+		}
+
 		fillTags(data.tags || []);
 		await fillChannels(data.channels || [], data.defaultChannelId);
 		renderToday(data.today);
@@ -101,10 +214,7 @@ function fillTags(tags) {
 	const select = $('tag');
 	if (select.options.length > 1) return;
 	for (const tag of tags) {
-		const option = document.createElement('option');
-		option.value = tag.value;
-		option.textContent = tag.label;
-		select.append(option);
+		select.append(new Option(tag.label, tag.value));
 	}
 }
 
@@ -113,19 +223,16 @@ async function fillChannels(channels, defaultChannelId) {
 	const select = $('channel');
 	select.replaceChildren(select.options[0]);
 	for (const channel of channels) {
-		const option = document.createElement('option');
-		option.value = channel.id;
-		option.textContent = channel.name;
-		select.append(option);
+		select.append(new Option(channel.name, channel.id));
 	}
 
-	const { channelChoice } = await chrome.storage.local.get('channelChoice');
-	const valid = channelChoice === NO_CHANNEL || channels.some((c) => c.id === channelChoice);
-	select.value = valid ? channelChoice : defaultChannelId || NO_CHANNEL;
+	const choice = await getChannelChoice(account.id);
+	const valid = choice === NO_CHANNEL || channels.some((c) => c.id === choice);
+	select.value = valid ? choice : defaultChannelId || NO_CHANNEL;
 	$('channel-hint').hidden = channels.length > 0;
 }
 
-$('channel').addEventListener('change', () => chrome.storage.local.set({ channelChoice: $('channel').value }));
+$('channel').addEventListener('change', () => setChannelChoice(account.id, $('channel').value));
 
 function renderToday(today) {
 	if (!today) return;
@@ -167,7 +274,7 @@ $('btn-start').addEventListener('click', (e) =>
 			body: {
 				label: $('plan').value.trim(),
 				tag: $('tag').value || undefined,
-				channelId: $('channel').value === NO_CHANNEL ? null : $('channel').value,
+				channelId: toStartChannelId($('channel').value),
 			},
 		});
 		$('plan').value = '';
@@ -239,8 +346,4 @@ $('btn-end-cancel').addEventListener('click', () => {
 
 // ---------- 시작 ----------
 
-(async () => {
-	const { token } = await getConfig();
-	if (token) loadSession();
-	else showSetup(false);
-})();
+loadSession();

@@ -9,6 +9,9 @@ const TOKEN_PREFIX = 'ff_';
 export interface ApiIdentity {
 	teamId: string;
 	userId: string;
+	/** 발급 시점의 워크스페이스 / 사용자 이름 (익스텐션 워크스페이스 전환 표시용) */
+	teamName?: string;
+	userName?: string;
 }
 
 async function sha256Hex(value: string): Promise<string> {
@@ -23,12 +26,17 @@ function randomToken(): string {
 }
 
 /** 새 토큰 발급 (이전 토큰은 폐기) */
-export async function issueApiToken(env: Env, teamId: string, userId: string): Promise<string> {
+export async function issueApiToken(
+	env: Env,
+	teamId: string,
+	userId: string,
+	names: { teamName?: string; userName?: string } = {}
+): Promise<string> {
 	await revokeApiToken(env, teamId, userId);
 
 	const token = randomToken();
 	const hash = await sha256Hex(token);
-	await env.STUDY_KV.put(`apitoken:${hash}`, JSON.stringify({ teamId, userId, createdAt: Date.now() }));
+	await env.STUDY_KV.put(`apitoken:${hash}`, JSON.stringify({ teamId, userId, ...names, createdAt: Date.now() }));
 	await env.STUDY_KV.put(`${teamId}:apiToken:${userId}`, hash);
 	return token;
 }
@@ -57,8 +65,8 @@ export async function authenticateRequest(request: Request, env: Env): Promise<A
 	}
 
 	try {
-		const { teamId, userId } = JSON.parse(stored) as ApiIdentity;
-		return teamId && userId ? { teamId, userId } : null;
+		const { teamId, userId, teamName, userName } = JSON.parse(stored) as ApiIdentity;
+		return teamId && userId ? { teamId, userId, teamName, userName } : null;
 	} catch {
 		return null;
 	}

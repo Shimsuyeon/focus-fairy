@@ -89,7 +89,7 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 	}
 }
 
-async function getSession(request: Request, env: Env, { teamId, userId }: ApiIdentity): Promise<Response> {
+async function getSession(request: Request, env: Env, { teamId, userId, teamName, userName }: ApiIdentity): Promise<Response> {
 	const [session, today, channels, lastChannel] = await Promise.all([
 		getUserSessionState(env, teamId, userId),
 		getUserTodayStats(env, teamId, userId),
@@ -99,7 +99,8 @@ async function getSession(request: Request, env: Env, { teamId, userId }: ApiIde
 	const defaultChannelId = channels.some((c) => c.id === lastChannel) ? lastChannel : channels[0]?.id || null;
 	return json(request, {
 		ok: true,
-		teamId,
+		workspace: { id: teamId, name: teamName || teamId },
+		user: { id: userId, name: userName || userId },
 		session,
 		today,
 		channels: channels.map(({ id, name }) => ({ id, name })),

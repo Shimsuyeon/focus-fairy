@@ -288,6 +288,25 @@ export async function getUserNames(env: Env, teamId: string, userIds: string[]):
 	return names;
 }
 
+/** 워크스페이스 이름 — auth.test는 별도 권한 없이 팀 이름을 돌려준다. 실패하면 teamId */
+export async function getTeamName(env: Env, teamId: string): Promise<string> {
+	const token = await getBotToken(env, teamId);
+	if (!token) return teamId;
+
+	try {
+		const response = await fetch('https://slack.com/api/auth.test', {
+			method: 'POST',
+			headers: { Authorization: `Bearer ${token}` },
+		});
+		const data = (await response.json()) as { ok: boolean; team?: string; error?: string };
+		if (data.ok && data.team) return data.team;
+		console.error('auth.test failed:', data.error);
+	} catch (error) {
+		console.error('auth.test error:', error);
+	}
+	return teamId;
+}
+
 /** KV에서 사용자 토큰(user token) 가져오기 */
 export async function getUserToken(env: Env, teamId: string, userId: string): Promise<string | null> {
 	return await env.STUDY_KV.get(`${teamId}:userToken:${userId}`);

@@ -8,14 +8,16 @@
 	<body>
 		<header>
 			<img src="icons/icon32.png" alt="" width="20" height="20" />
-			<h1>집중요정</h1>
-			<button id="open-settings" class="icon-btn" title="설정" hidden>⚙︎</button>
+			<h1 id="app-title">집중요정</h1>
+			<select id="workspace" class="workspace" title="워크스페이스" hidden></select>
+			<button id="open-settings" class="icon-btn" title="이 워크스페이스 설정" hidden>⚙︎</button>
 		</header>
 
 		<p id="error" class="error" hidden></p>
 
 		<!-- 토큰 설정 -->
 		<section id="view-setup" hidden>
+			<h2 id="setup-title">워크스페이스 연결</h2>
 			<p class="hint">
 				Slack 집중요정 <b>홈 탭 → 크롬 익스텐션 연결</b> 버튼이나 <code>/settings extension</code> 으로 토큰을 발급받아 붙여넣어 주세요.
 			</p>
@@ -31,7 +33,7 @@
 				<button id="save-config" class="primary">연결하기</button>
 				<button id="cancel-setup" hidden>취소</button>
 			</div>
-			<button id="disconnect" class="link danger" hidden>연결 해제</button>
+			<button id="disconnect" class="link danger" hidden>이 워크스페이스 연결 해제</button>
 		</section>
 
 		<!-- 세션 -->

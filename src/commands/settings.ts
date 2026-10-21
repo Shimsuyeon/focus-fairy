@@ -3,7 +3,7 @@
  * 워크스페이스 설정 모달
  */
 
-import { replyEphemeral, getBotToken, getUserTimezone, getUserToken } from '../utils/slack';
+import { replyEphemeral, getBotToken, getUserTimezone, getUserToken, getTeamName, getUserName } from '../utils/slack';
 import { MAX_AUTO_DURATION } from '../constants/messages';
 import { issueApiToken } from '../api/auth';
 
@@ -352,7 +352,8 @@ export async function handleExtensionSettings(
 		return replyEphemeral('봇 토큰을 찾을 수 없어요.');
 	}
 
-	const apiToken = await issueApiToken(env, teamId, userId);
+	const [teamName, userName] = await Promise.all([getTeamName(env, teamId), getUserName(env, teamId, userId)]);
+	const apiToken = await issueApiToken(env, teamId, userId, { teamName, userName });
 
 	const modal = {
 		trigger_id: triggerId,
@@ -366,7 +367,7 @@ export async function handleExtensionSettings(
 					type: 'section',
 					text: {
 						type: 'mrkdwn',
-						text: ':fairy-wand: 아래 토큰을 집중요정 크롬 익스텐션 팝업에 붙여넣어 주세요.\n이 토큰은 *지금 한 번만* 보여요.',
+						text: `:fairy-wand: *${teamName}* 워크스페이스용 토큰이에요. 집중요정 크롬 익스텐션 팝업에 붙여넣어 주세요.\n이 토큰은 *지금 한 번만* 보여요.`,
 					},
 				},
 				{
@@ -383,7 +384,8 @@ export async function handleExtensionSettings(
 					elements: [
 						{
 							type: 'mrkdwn',
-							text: '• 익스텐션에서 시작하면 마지막으로 `/start` 한 채널에 메시지가 올라가요.\n' +
+							text: '• 여러 워크스페이스에서 쓴다면 각 워크스페이스에서 토큰을 발급해 익스텐션에 추가하세요.\n' +
+								'• 메시지를 올릴 채널은 이 워크스페이스에서 `/start` 한 적 있는 채널 중에 고를 수 있어요.\n' +
 								'• 토큰을 다시 발급하면 이전 토큰은 바로 사용할 수 없게 돼요.\n' +
 								'• 토큰은 비밀번호처럼 다른 사람과 공유하지 마세요.',
 						},
