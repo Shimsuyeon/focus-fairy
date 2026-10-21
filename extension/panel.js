@@ -124,7 +124,7 @@ async function showSetup(mode) {
 	const editing = mode === 'edit' && account;
 
 	$('setup-title').textContent = editing ? `${account.teamName || '워크스페이스'} 설정` : '워크스페이스 연결';
-	$('server-url').value = editing ? account.serverUrl : accounts.at(-1)?.serverUrl || DEFAULT_SERVER;
+	$('server-url').value = editing ? account.serverUrl : DEFAULT_SERVER;
 	$('token').value = '';
 	$('token').placeholder = editing ? '새 토큰 붙여넣기 (비우면 유지)' : 'ff_...';
 	$('save-config').textContent = editing ? '저장' : '연결하기';

@@ -5,7 +5,7 @@
  * 공개 메시지 채널은 사용자가 /start 한 적 있는 채널 중에서만 고를 수 있다 (봇이 게시 가능한 채널 보장 + 임의 채널 게시 방지).
  */
 
-import { authenticateRequest, type ApiIdentity } from './auth';
+import { authenticateRequest, redeemConnectCode, type ApiIdentity } from './auth';
 import { getTeamStatus, getMonthStats, setMonthlyGoal, updateRunningSession } from './dashboard';
 import { beginSession, getUserSessionState, getUserTodayStats, getRecentChannels } from '../services/session';
 import { handlePause, handleResume } from '../commands/pause';
@@ -66,6 +66,11 @@ async function getSessionChannel(env: Env, teamId: string, userId: string): Prom
 export async function handleApi(request: Request, env: Env, url: URL): Promise<Response> {
 	if (request.method === 'OPTIONS') {
 		return new Response(null, { status: 204, headers: corsHeaders(request) });
+	}
+
+	// 연결 링크의 일회용 코드 → 토큰 (토큰이 아직 없으므로 인증 전에 처리)
+	if (request.method === 'POST' && url.pathname === '/api/connect') {
+		return connectWithCode(request, env);
 	}
 
 	const identity = await authenticateRequest(request, env);
@@ -256,4 +261,21 @@ async function setGoal(request: Request, env: Env, identity: ApiIdentity): Promi
 		return apiError(request, 400, 'invalid_goal', '목표 시간을 확인해주세요. (최대 744시간)');
 	}
 	return json(request, { ok: true, goalMs });
+}
+
+async function connectWithCode(request: Request, env: Env): Promise<Response> {
+	const { code } = await readBody(request);
+	const redeemed = typeof code === 'string' && code ? await redeemConnectCode(env, code) : null;
+	if (!redeemed) {
+		return apiError(request, 400, 'invalid_code', '연결 링크가 만료됐거나 이미 사용됐어요. Slack에서 다시 연결해주세요.');
+	}
+
+	const { token, identity } = redeemed;
+	return json(request, {
+		ok: true,
+		token,
+		workspace: { id: identity.teamId, name: identity.teamName || identity.teamId },
+		user: { id: identity.userId, name: identity.userName || identity.userId },
+		session: await getUserSessionState(env, identity.teamId, identity.userId),
+	});
 }

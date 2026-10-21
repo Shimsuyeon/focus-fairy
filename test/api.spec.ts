@@ -1,6 +1,6 @@
 import { env, SELF } from 'cloudflare:test';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { issueApiToken } from '../src/api/auth';
+import { issueApiToken, createConnectCode } from '../src/api/auth';
 import { getTodayKey } from '../src/utils/date';
 
 const TEAM = 'T_API';
@@ -164,6 +164,28 @@ describe('extension API', () => {
 	it('진행 중인 세션 없이 pause/end 하면 409', async () => {
 		expect((await callApi('/api/session/pause', token, {})).status).toBe(409);
 		expect((await callApi('/api/session/end', token, {})).status).toBe(409);
+	});
+
+	it('연결 링크 코드 → 토큰 (한 번만, 이전 토큰은 무효화)', async () => {
+		const code = await createConnectCode(env, TEAM, USER, { teamName: '모각코 스터디', userName: '수연' });
+
+		const connected = await getJson(await callApi('/api/connect', null, { code }));
+		expect(connected.ok).toBe(true);
+		expect(connected.token).toMatch(/^ff_/);
+		expect(connected.workspace).toEqual({ id: TEAM, name: '모각코 스터디' });
+		expect(connected.session.state).toBe('idle');
+
+		expect((await callApi('/api/session', connected.token)).status).toBe(200);
+		expect((await callApi('/api/session', token)).status).toBe(401);
+
+		expect((await callApi('/api/connect', null, { code })).status).toBe(400);
+		expect((await callApi('/api/connect', null, { code: 'nope' })).status).toBe(400);
+	});
+
+	it('GET /extension/connect — 연결 페이지', async () => {
+		const res = await SELF.fetch('https://example.com/extension/connect');
+		expect(res.status).toBe(200);
+		expect(await res.text()).toContain('ff-connect-status');
 	});
 
 	it('익스텐션 오리진 preflight에 CORS 헤더를 준다', async () => {

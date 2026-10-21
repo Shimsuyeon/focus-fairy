@@ -2,10 +2,21 @@
  * 백그라운드 서비스 워커
  * - 1분마다 캐시된 세션으로 툴바 배지 갱신, 5분마다 모든 워크스페이스를 서버와 동기화 (Slack에서 바꾼 상태 반영)
  * - 배지: 지금 보고 있는 워크스페이스 우선, 그곳이 쉬는 중이면 집중 중인 다른 워크스페이스
+ * - 연결 페이지(connect.js)에서 받은 일회용 코드로 워크스페이스 연결
  * - 단축키 toggle-focus: 활성 워크스페이스에서 쉬는 중 → 시작, 집중 중 → 일시정지, 일시정지 → 재개
  */
 
-import { api, getAccounts, setAccountState, getChannelChoice, toStartChannelId, focusedMs, badgeText } from './api.js';
+import {
+	api,
+	getAccounts,
+	saveAccount,
+	setActiveAccount,
+	setAccountState,
+	getChannelChoice,
+	toStartChannelId,
+	focusedMs,
+	badgeText,
+} from './api.js';
 
 const COLORS = { focusing: '#22A06B', paused: '#E8930C', error: '#E5484D' };
 
@@ -86,4 +97,49 @@ chrome.commands.onCommand.addListener(async (command) => {
 		if (err.status === 401) await setAccountState(active.id, { session: null, authError: true });
 		console.error('toggle-focus failed:', err);
 	}
+});
+
+// ---------- 연결 링크 ----------
+
+/** 연결 페이지가 보낸 코드를 그 페이지의 서버에서 토큰으로 바꿔 계정을 추가하고 활성화 */
+async function connectWithCode(code, serverUrl) {
+	let res;
+	try {
+		res = await fetch(`${serverUrl}/api/connect`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ code }),
+		});
+	} catch {
+		return { ok: false, message: '서버에 연결할 수 없어요.' };
+	}
+	const data = await res.json().catch(() => ({}));
+	if (!res.ok || !data.token) {
+		return { ok: false, message: data.message || '연결하지 못했어요. Slack에서 다시 시도해주세요.' };
+	}
+
+	const account = {
+		id: crypto.randomUUID(),
+		serverUrl,
+		token: data.token,
+		teamId: data.workspace?.id,
+		teamName: data.workspace?.name,
+		userId: data.user?.id,
+		userName: data.user?.name,
+	};
+	await saveAccount(account);
+	await setAccountState(account.id, { session: data.session, authError: false });
+	await setActiveAccount(account.id);
+	return { ok: true, teamName: account.teamName };
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+	if (message?.type !== 'connect' || sender.id !== chrome.runtime.id || !sender.url) return;
+
+	// content script는 manifest의 연결 페이지에만 들어가지만, 서버 주소는 보낸 페이지에서 직접 확인한다
+	const page = new URL(sender.url);
+	if (page.pathname !== '/extension/connect') return;
+
+	connectWithCode(String(message.code), page.origin).then(sendResponse);
+	return true; // 비동기 응답
 });

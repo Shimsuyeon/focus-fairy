@@ -12,7 +12,7 @@ import { handlePause, handleResume } from '../commands/pause';
 import { handleEnd } from '../commands/end';
 import { handleMyStats } from '../commands/mystats';
 import { handleHelp } from '../commands/help';
-import { handleSettings, getUserTimezoneInfo } from '../commands/settings';
+import { handleSettings, getUserTimezoneInfo, handleExtensionShowToken, EXTENSION_ACTION } from '../commands/settings';
 import { buildSessionPanelBlocks, PANEL_ACTION } from '../utils/sessionPanel';
 import { HOME_ACTION } from '../pages/home/render';
 import { publishHomeView } from '../pages/home';
@@ -35,6 +35,8 @@ interface SlackInteractionPayload {
 	message?: { ts: string; text: string; blocks?: SlackBlock[] };
 	actions?: Array<{ action_id: string; value?: string; block_id?: string }>;
 	view?: {
+		id?: string;
+		hash?: string;
 		callback_id: string;
 		private_metadata: string;
 		state: {
@@ -109,6 +111,10 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env, or
 
 	if (actionId === 'confirm_end_duration') {
 		return handleConfirmEndDuration(payload, env);
+	}
+
+	if (actionId === EXTENSION_ACTION.showToken && payload.view) {
+		return handleExtensionShowToken(env, payload.user.team_id, payload.user.id, payload.view);
 	}
 
 	if (actionId === 'disconnect_status_sync') {

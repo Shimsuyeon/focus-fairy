@@ -22,19 +22,29 @@ The extension isn't on the Chrome Web Store yet, so install it in **developer mo
 
 The extension identifies you with a **personal connection token** instead of your Slack account.
 
-1. In the focus-fairy **Home tab**, click **크롬 익스텐션 연결** (Connect Chrome extension), or type `/settings extension` in any channel.
-2. Copy the `ff_...` token shown in the modal.
-3. Open the extension popup, paste the token and click **연결하기** (Connect).
+1. In the Chrome where the extension is installed, click **크롬 익스텐션 연결** (Connect Chrome extension) in the focus-fairy **Home tab**, or type `/settings extension` in any channel.
+2. Click **🧩 익스텐션에 연결하기** (Connect the extension) in the modal.
+3. A connection page opens in your browser and the extension **connects automatically**. You're done when you see "✅ 연결됐어요!".
+
+No copy-pasting and no server address needed. The connection link works **once, within 10 minutes**.
+
+### Paste a token manually
+
+If you can't use the link, click **토큰 직접 복사하기** (Copy token manually) in the modal, copy the `ff_...` token, and paste it into **＋ 워크스페이스 추가** (Add workspace) in the extension popup. Leave the server address as the default.
+
+:::tip
+Copy the token first, then open the popup. Chrome closes the popup when you click another window such as the Slack app.
+:::
 
 :::caution
-Treat the token like a password and don't share it. It's shown only once, and the server stores only its hash.
+Treat the token like a password and don't share it. The server stores only its hash.
 
-Issuing a new token **immediately invalidates the old one**, so reissue it if you think it leaked.
+Reconnecting or getting a new token **immediately invalidates the old one**, so reconnect if you think it leaked.
 :::
 
 ### Multiple workspaces
 
-If you use focus-fairy in several Slack workspaces, issue a token in each one and add it with **＋ 워크스페이스 추가** (Add workspace) in the dropdown at the top of the popup.
+If you use focus-fairy in several Slack workspaces, connect each one the same way and they're added to the extension one by one.
 
 - Switch workspaces with the dropdown. A workspace that is focusing shows 🟢, and one on a break shows 🟠.
 - Use the ⚙︎ button to change the token or disconnect the current workspace.

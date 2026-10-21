@@ -5,7 +5,7 @@
 
 import { replyEphemeral, getBotToken, getUserTimezone, getUserToken, getTeamName, getUserName } from '../utils/slack';
 import { MAX_AUTO_DURATION } from '../constants/messages';
-import { issueApiToken } from '../api/auth';
+import { issueApiToken, createConnectCode } from '../api/auth';
 
 export type TimezoneLabelMode = 'auto' | 'always' | 'never';
 
@@ -332,9 +332,20 @@ async function handleSyncSettings(
 	}), { headers: { 'Content-Type': 'application/json' } });
 }
 
+export const EXTENSION_ACTION = {
+	connectLink: 'extension_connect_link',
+	showToken: 'extension_show_token',
+} as const;
+
+const EXTENSION_NOTES =
+	'• 여러 워크스페이스에서 쓴다면 각 워크스페이스에서 연결하세요. 익스텐션 위쪽 드롭다운으로 전환할 수 있어요.\n' +
+	'• 메시지를 올릴 채널은 이 워크스페이스에서 `/start` 한 적 있는 채널 중에 고를 수 있어요.\n' +
+	'• 다시 연결하거나 토큰을 새로 받으면 이전 토큰은 바로 사용할 수 없게 돼요.';
+
 /**
- * 크롬 익스텐션 연결 — 개인 API 토큰을 새로 발급해 본인에게만 보이는 모달로 보여준다.
- * 재발급하면 이전 토큰은 무효화된다. (/settings extension, App Home 버튼 공용)
+ * 크롬 익스텐션 연결 모달 (/settings extension, App Home 버튼 공용).
+ * 기본은 '익스텐션에 연결하기' 링크 버튼 — 일회용 코드가 담긴 연결 페이지를 열면 익스텐션이 알아서 토큰을 받는다.
+ * 링크를 쓸 수 없을 때를 위해 '토큰 직접 복사하기' 버튼도 둔다 (누를 때 토큰 발급).
  */
 export async function handleExtensionSettings(
 	env: Env,
@@ -353,13 +364,14 @@ export async function handleExtensionSettings(
 	}
 
 	const [teamName, userName] = await Promise.all([getTeamName(env, teamId), getUserName(env, teamId, userId)]);
-	const apiToken = await issueApiToken(env, teamId, userId, { teamName, userName });
+	const code = baseUrl ? await createConnectCode(env, teamId, userId, { teamName, userName }) : null;
 
 	const modal = {
 		trigger_id: triggerId,
 		view: {
 			type: 'modal',
 			callback_id: 'extension_token_modal',
+			private_metadata: JSON.stringify({ baseUrl: baseUrl || '' }),
 			title: { type: 'plain_text', text: '크롬 익스텐션 연결' },
 			close: { type: 'plain_text', text: '닫기' },
 			blocks: [
@@ -367,30 +379,43 @@ export async function handleExtensionSettings(
 					type: 'section',
 					text: {
 						type: 'mrkdwn',
-						text: `:fairy-wand: *${teamName}* 워크스페이스용 토큰이에요. 집중요정 크롬 익스텐션 팝업에 붙여넣어 주세요.\n이 토큰은 *지금 한 번만* 보여요.`,
+						text: `:fairy-wand: *${teamName}* 워크스페이스를 집중요정 크롬 익스텐션에 연결해요.`,
 					},
 				},
 				{
-					type: 'section',
-					text: { type: 'mrkdwn', text: '```' + apiToken + '```' },
+					type: 'actions',
+					elements: [
+						...(code
+							? [
+									{
+										type: 'button',
+										action_id: EXTENSION_ACTION.connectLink,
+										style: 'primary',
+										text: { type: 'plain_text', text: '🧩 익스텐션에 연결하기' },
+										url: `${baseUrl}/extension/connect#code=${code}`,
+									},
+							  ]
+							: []),
+						{
+							type: 'button',
+							action_id: EXTENSION_ACTION.showToken,
+							text: { type: 'plain_text', text: '토큰 직접 복사하기' },
+						},
+					],
 				},
-				...(baseUrl ? [{
-					type: 'context',
-					elements: [{ type: 'mrkdwn', text: `서버 주소: \`${baseUrl}\`` }],
-				}] : []),
-				{ type: 'divider' },
 				{
 					type: 'context',
 					elements: [
 						{
 							type: 'mrkdwn',
-							text: '• 여러 워크스페이스에서 쓴다면 각 워크스페이스에서 토큰을 발급해 익스텐션에 추가하세요.\n' +
-								'• 메시지를 올릴 채널은 이 워크스페이스에서 `/start` 한 적 있는 채널 중에 고를 수 있어요.\n' +
-								'• 토큰을 다시 발급하면 이전 토큰은 바로 사용할 수 없게 돼요.\n' +
-								'• 토큰은 비밀번호처럼 다른 사람과 공유하지 마세요.',
+							text: code
+								? '버튼을 누르면 브라우저에 연결 페이지가 열리고 익스텐션이 *자동으로 연결*돼요. 링크는 10분 동안 한 번만 쓸 수 있어요.'
+								: '토큰을 복사해서 익스텐션 팝업에 붙여넣어 주세요.',
 						},
 					],
 				},
+				{ type: 'divider' },
+				{ type: 'context', elements: [{ type: 'mrkdwn', text: EXTENSION_NOTES }] },
 			],
 		},
 	};
@@ -410,5 +435,67 @@ export async function handleExtensionSettings(
 		return replyEphemeral('모달을 열 수 없어요. 다시 시도해주세요!');
 	}
 
+	return new Response('', { status: 200 });
+}
+
+/** '토큰 직접 복사하기' — 토큰을 발급해 같은 모달을 토큰 화면으로 바꾼다 */
+export async function handleExtensionShowToken(
+	env: Env,
+	teamId: string,
+	userId: string,
+	view: { id?: string; hash?: string; private_metadata?: string }
+): Promise<Response> {
+	const botToken = await getBotToken(env, teamId);
+	if (!botToken || !view.id) {
+		return new Response('', { status: 200 });
+	}
+
+	let baseUrl = '';
+	try {
+		baseUrl = JSON.parse(view.private_metadata || '{}').baseUrl || '';
+	} catch {
+		// 무시
+	}
+
+	const [teamName, userName] = await Promise.all([getTeamName(env, teamId), getUserName(env, teamId, userId)]);
+	const apiToken = await issueApiToken(env, teamId, userId, { teamName, userName });
+
+	const res = await fetch('https://slack.com/api/views.update', {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${botToken}`,
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({
+			view_id: view.id,
+			hash: view.hash,
+			view: {
+				type: 'modal',
+				callback_id: 'extension_token_modal',
+				title: { type: 'plain_text', text: '크롬 익스텐션 연결' },
+				close: { type: 'plain_text', text: '닫기' },
+				blocks: [
+					{
+						type: 'section',
+						text: {
+							type: 'mrkdwn',
+							text: `:fairy-wand: *${teamName}* 워크스페이스용 토큰이에요. 익스텐션 팝업의 *＋ 워크스페이스 추가*에 붙여넣어 주세요.\n이 토큰은 *지금 한 번만* 보여요. 비밀번호처럼 다른 사람과 공유하지 마세요.`,
+						},
+					},
+					{ type: 'section', text: { type: 'mrkdwn', text: '```' + apiToken + '```' } },
+					...(baseUrl
+						? [{ type: 'context', elements: [{ type: 'mrkdwn', text: `서버 주소: \`${baseUrl}\` (기본값이라 그대로 두면 돼요)` }] }]
+						: []),
+					{ type: 'divider' },
+					{ type: 'context', elements: [{ type: 'mrkdwn', text: EXTENSION_NOTES }] },
+				],
+			},
+		}),
+	});
+
+	const data = (await res.json()) as { ok: boolean; error?: string };
+	if (!data.ok) {
+		console.error('Failed to update extension token modal:', data.error);
+	}
 	return new Response('', { status: 200 });
 }

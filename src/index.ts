@@ -24,6 +24,7 @@ import { handleOAuthInstall, handleOAuthCallback, handleUserOAuthInstall, handle
 import { handleInteraction } from './interactions';
 import { handleEvent } from './events';
 import { handleApi } from './api';
+import { handleExtensionConnectPage } from './pages/extension/connect';
 import { rememberChannel } from './services/session';
 
 export default {
@@ -46,6 +47,8 @@ export default {
 					return handleUserOAuthInstall(request, env);
 				case '/slack/oauth/user-callback':
 					return handleUserOAuthCallback(request, env);
+				case '/extension/connect':
+					return handleExtensionConnectPage();
 				default: {
 					const teamId = url.searchParams.get('team') || env.DEFAULT_TEAM_ID;
 					const weekParam = url.searchParams.get('week');

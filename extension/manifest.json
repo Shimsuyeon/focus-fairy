@@ -18,6 +18,12 @@
 		"type": "module"
 	},
 	"permissions": ["storage", "alarms"],
+	"content_scripts": [
+		{
+			"matches": ["https://focus-fairy.suyeonshim.workers.dev/extension/connect*", "http://localhost:8787/extension/connect*"],
+			"js": ["connect.js"]
+		}
+	],
 	"host_permissions": ["https://focus-fairy.suyeonshim.workers.dev/*", "http://localhost:8787/*"],
 	"commands": {
 		"_execute_action": {
