@@ -1,5 +1,5 @@
 /**
- * 팝업 오른쪽 칸 — 월 누적 집중 시간, 목표 진행률, 누적/일별 그래프, 카테고리 비율.
+ * 팝업 오른쪽 칸 — 이번 달의 나무(목표 진행), 요약 카드, 일별/누적 그래프, 카테고리 비율.
  * 왼쪽 칸(panel.js)에서 워크스페이스를 바꾸거나 세션을 바꾸면 storage 변경으로 따라간다.
  */
 
@@ -15,7 +15,7 @@ let month = null; // 'YYYY-MM', null이면 서버 기준 이번 달
 let stats = null;
 let session = null;
 let tagLabels = {};
-let mode = 'cumulative';
+let mode = 'daily';
 
 // ---------- 불러오기 ----------
 
@@ -91,13 +91,6 @@ function dateLabel(index) {
 	return `${m}월 ${index + 1}일 (${weekday})`;
 }
 
-function signed(ms) {
-	const span = document.createElement('span');
-	span.className = ms >= 0 ? 'up' : 'down';
-	span.textContent = `${ms >= 0 ? '+' : '−'}${formatDuration(Math.abs(ms))}`;
-	return span;
-}
-
 // ---------- 그리기 ----------
 
 function render() {
@@ -113,94 +106,144 @@ function render() {
 	renderTags(c);
 }
 
+/** 이번 달 나무가 자란 정도 (0~1) — 목표가 있으면 목표 대비, 없으면 집중한 날 비율 */
+function growthOf(c) {
+	if (c.goal) return Math.min(c.total / c.goal, 1);
+	return c.dim ? c.activeDays / c.dim : 0;
+}
+
+function stageLabel(g, reached) {
+	if (reached) return '🍎 열매 맺은 나무';
+	if (g < 0.15) return '🌱 새싹';
+	if (g < 0.4) return '🌿 어린 나무';
+	if (g < 0.75) return '🌳 자라는 나무';
+	return '🌳 거의 다 자란 나무';
+}
+
 function renderSummary(c) {
+	const reached = !!c.goal && c.total >= c.goal;
+	$('tree-stage').textContent = stageLabel(growthOf(c), reached);
 	$('month-total').textContent = c.total > 0 ? formatDuration(c.total) : '0분';
 	$('goal-text').textContent = c.goal ? `목표 ${formatDuration(c.goal)}` : '';
 	$('edit-goal').textContent = c.goal ? '수정' : '목표 설정';
+	$('fairy-says').replaceChildren(...fairyMessage(c, reached));
+	renderTree(c, reached);
+}
 
-	const progress = $('progress');
+/** 요정이 건네는 한마디 — 텍스트와 <b> 강조를 섞은 노드 목록 */
+function fairyMessage(c, reached) {
+	const b = (text) => Object.assign(document.createElement('b'), { textContent: text });
+	const fruits = `열매 ${c.activeDays}개`;
+
 	if (!c.goal) {
-		progress.hidden = true;
-		$('progress-left').textContent = '월 목표를 정하면 진행률과 하루에 필요한 시간을 보여줘요.';
-		$('progress-right').replaceChildren();
+		if (!c.isCurrent) return [`🧚 이 달에는 `, b(fruits), `가 열렸어요.`];
+		return [`🧚 집중한 날마다 열매가 하나씩 열려요. 목표를 정하면 나무가 얼마나 자랄지 알려줄게요.`];
+	}
+	if (reached) return [`🧚 목표를 이뤘어요! 나무에 `, b(fruits), `가 열렸어요.`];
+	if (!c.isCurrent) return [`🧚 목표까지 `, b(formatDuration(c.goal - c.total)), ` 모자랐지만 `, b(fruits), `를 키웠어요.`];
+
+	const remaining = c.goal - c.total;
+	const remainingDays = c.dim - c.todayIdx; // 오늘 포함
+	return [`🧚 남은 ${remainingDays}일, 하루 `, b(formatDuration(remaining / remainingDays)), `씩이면 나무가 다 자라요.`];
+}
+
+/**
+ * 나무 그리기 (120×120) — 많이 자랄수록 줄기와 잎이 커지고,
+ * 집중한 날마다 열매 하나 (가장 많이 한 날은 금색, 지금 집중 중인 오늘은 반짝임)
+ */
+function renderTree(c, reached) {
+	const g = growthOf(c);
+	const root = svg('svg', { viewBox: '0 0 120 120' });
+	root.append(svg('ellipse', { class: 'ground', cx: 60, cy: 110, rx: 46, ry: 7 }));
+
+	if (g < 0.12 && c.activeDays === 0) {
+		root.append(svg('line', { class: 'stem', x1: 60, y1: 108, x2: 60, y2: 92 }));
+		root.append(svg('ellipse', { class: 'leaf', cx: 52, cy: 91, rx: 8, ry: 4, transform: 'rotate(-25 52 91)' }));
+		root.append(svg('ellipse', { class: 'leaf light', cx: 68, cy: 89, rx: 8, ry: 4, transform: 'rotate(25 68 89)' }));
+		$('tree').replaceChildren(root);
 		return;
 	}
 
-	progress.hidden = false;
-	const ratio = c.total / c.goal;
-	$('progress-fill').style.width = `${Math.min(ratio, 1) * 100}%`;
+	const size = 0.35 + 0.65 * g;
+	const trunkH = 14 + 22 * size;
+	const trunkW = 5 + 5 * size;
+	const r = 14 + 26 * size;
+	const cy = 108 - trunkH - r * 0.55;
 
-	const paceRatio = c.isCurrent ? c.elapsedDays / c.dim : c.isPast ? 1 : 0;
-	$('progress-pace').style.left = `calc(${paceRatio * 100}% - 1px)`;
-	$('progress-pace').hidden = !c.isCurrent;
+	root.append(
+		svg('path', {
+			class: 'trunk',
+			d: `M${60 - trunkW / 2},108 L${60 - trunkW / 4},${108 - trunkH} L${60 + trunkW / 4},${108 - trunkH} L${60 + trunkW / 2},108 Z`,
+		})
+	);
+	root.append(svg('circle', { class: 'leaf', cx: 60 - r * 0.55, cy: cy + r * 0.2, r: r * 0.62 }));
+	root.append(svg('circle', { class: 'leaf', cx: 60 + r * 0.55, cy: cy + r * 0.2, r: r * 0.62 }));
+	root.append(svg('circle', { class: 'leaf light', cx: 60, cy, r: r * 0.8 }));
 
-	const left = $('progress-left');
-	if (c.isCurrent) {
-		left.replaceChildren('오늘까지 목표 페이스 대비 ', signed(c.total - (c.goal * c.elapsedDays) / c.dim));
-	} else {
-		left.textContent = c.isPast ? (ratio >= 1 ? '목표 달성! 🎉' : `${formatDuration(c.goal - c.total)} 부족했어요`) : '';
+	// 집중한 날 → 열매. 해바라기 씨처럼 골고루 퍼지게 (황금각)
+	const days = c.daily.map((ms, i) => ({ ms, i })).filter((d) => d.ms > 0 && d.i <= c.lastIdx);
+	const best = days.reduce((top, d) => (d.ms > (top?.ms || 0) ? d : top), null);
+	days.forEach((d, k) => {
+		const dist = r * 0.85 * Math.sqrt((k + 0.5) / Math.max(days.length, 8));
+		const angle = k * 2.39996;
+		const fruit = svg('circle', {
+			class: ['fruit', d === best ? 'best' : '', d.i === c.todayIdx && c.live ? 'live' : ''].filter(Boolean).join(' '),
+			cx: 60 + dist * Math.cos(angle),
+			cy: cy + r * 0.05 + dist * Math.sin(angle) * 0.8,
+			r: 2.2 + 2.6 * Math.min(d.ms / (4 * HOUR), 1),
+		});
+		const title = svg('title');
+		title.textContent = `${dateLabel(d.i)} · ${formatDuration(d.ms)}`;
+		fruit.append(title);
+		root.append(fruit);
+	});
+
+	if (reached) {
+		for (const [x, y] of [
+			[22, 30],
+			[98, 24],
+			[104, 62],
+		]) {
+			root.append(
+				svg('path', {
+					class: 'sparkle',
+					d: `M${x},${y - 5} L${x + 1.5},${y - 1.5} L${x + 5},${y} L${x + 1.5},${y + 1.5} L${x},${y + 5} L${x - 1.5},${y + 1.5} L${
+						x - 5
+					},${y} L${x - 1.5},${y - 1.5} Z`,
+				})
+			);
+		}
 	}
-	const pct = document.createElement('b');
-	pct.textContent = `${Math.floor(ratio * 100)}%`;
-	$('progress-right').replaceChildren(pct, ' 달성');
+	$('tree').replaceChildren(root);
 }
 
 function renderTiles(c) {
-	// 오늘 (지난 달이면 최고의 날)
+	// 오늘 (지난 달이면 기록 횟수)
 	if (c.isCurrent) {
-		$('tile-today').parentElement.querySelector('.label').textContent = '오늘';
+		$('tile-first-label').textContent = '오늘';
 		$('tile-today').textContent = formatDuration(c.daily[c.todayIdx]);
 		const count = stats.days[c.todayIdx].count;
 		$('tile-today-sub').textContent =
 			[count ? `${count}회 기록` : '', c.live ? '지금 집중 중 🟢' : ''].filter(Boolean).join(' · ') || '아직 기록이 없어요';
 	} else {
-		const best = c.daily.reduce((bi, ms, i, arr) => (ms > arr[bi] ? i : bi), 0);
-		$('tile-today').parentElement.querySelector('.label').textContent = '최고의 날';
-		$('tile-today').textContent = c.daily[best] > 0 ? formatDuration(c.daily[best]) : '—';
-		$('tile-today-sub').textContent = c.daily[best] > 0 ? dateLabel(best) : '';
+		$('tile-first-label').textContent = '기록';
+		$('tile-today').textContent = `${stats.days.reduce((sum, d) => sum + d.count, 0)}회`;
+		$('tile-today-sub').textContent = '이 달에 끝낸 세션';
 	}
 
 	// 일 평균
 	$('tile-avg').textContent = c.elapsedDays > 0 ? formatDuration(c.total / c.elapsedDays) : '—';
 	$('tile-avg-sub').textContent = c.activeDays > 0 ? `집중한 날만 ${formatDuration(c.total / c.activeDays)}` : '';
 
-	// 목표까지 하루
-	const detail = $('need-detail');
-	detail.replaceChildren();
-	const sub = $('tile-need-sub');
-	if (!c.goal) {
-		$('tile-need').textContent = '—';
-		sub.textContent = '목표를 설정해보세요';
-	} else if (!c.isCurrent) {
-		$('tile-need').textContent = c.total >= c.goal ? '달성 🎉' : '미달성';
-		sub.textContent = `목표 ${formatDuration(c.goal)}`;
-	} else {
-		const remaining = c.goal - c.total;
-		const remainingDays = c.dim - c.todayIdx; // 오늘 포함
-		const yesterdayCum = c.todayIdx > 0 ? c.cumulative[c.todayIdx - 1] : 0;
-		const paceToYesterday = yesterdayCum - (c.goal * c.todayIdx) / c.dim;
+	// 최고의 날
+	const best = c.daily.reduce((bi, ms, i, arr) => (ms > arr[bi] ? i : bi), 0);
+	$('tile-best').textContent = c.daily[best] > 0 ? formatDuration(c.daily[best]) : '—';
+	$('tile-best-sub').textContent = c.daily[best] > 0 ? `🌟 ${dateLabel(best)}` : '';
 
-		$('tile-need').textContent = remaining <= 0 ? '달성 🎉' : formatDuration(remaining / remainingDays);
-		sub.textContent = remaining <= 0 ? `${formatDuration(-remaining)} 초과` : `남은 ${remainingDays}일 (오늘 포함)`;
-
-		const rows = [
-			['남은 날', `${remainingDays}일`],
-			['채울 시간', remaining > 0 ? formatDuration(remaining) : '없음'],
-			['목표 일 평균', formatDuration(c.goal / c.dim)],
-			['어제까지 페이스', signed(paceToYesterday)],
-		];
-		for (const [term, value] of rows) {
-			const dt = document.createElement('dt');
-			dt.textContent = term;
-			const dd = document.createElement('dd');
-			dd.append(value);
-			detail.append(dt, dd);
-		}
-	}
-
-	// 집중한 날
-	$('tile-days').textContent = `${c.activeDays}일`;
-	$('tile-days-sub').textContent = c.elapsedDays > 0 ? `${c.elapsedDays}일 중${c.streak > 1 ? ` · 🔥 ${c.streak}일 연속` : ''}` : '';
+	// 열매 (집중한 날)
+	$('tile-days').textContent = `${c.activeDays}개`;
+	$('tile-days-sub').textContent =
+		c.elapsedDays > 0 ? `${c.elapsedDays}일 중 집중한 날${c.streak > 1 ? ` · 🔥 ${c.streak}일 연속` : ''}` : '';
 }
 
 // ---------- 차트 ----------
@@ -256,7 +299,9 @@ function renderChart(c) {
 	const every = band >= 20 ? 1 : band >= 10 ? 2 : 5;
 	const [y, m] = stats.month.split('-').map(Number);
 	for (let i = 0; i < c.dim; i++) {
-		if (i % every !== 0 && i !== c.todayIdx) continue;
+		// 오늘은 항상 표시하고, 오늘과 겹치는 옆 날짜는 건너뛴다
+		const nearToday = c.todayIdx >= 0 && i !== c.todayIdx && Math.abs(i - c.todayIdx) < every;
+		if ((i % every !== 0 && i !== c.todayIdx) || nearToday) continue;
 		const weekday = new Date(Date.UTC(y, m - 1, i + 1)).getUTCDay();
 		const cls = i === c.todayIdx ? 'axis-text today' : weekday === 0 || weekday === 6 ? 'axis-text weekend' : 'axis-text';
 		const label = svg('text', { class: cls, x: x(i), y: height - 8, 'text-anchor': 'middle' });

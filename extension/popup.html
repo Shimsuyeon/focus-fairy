@@ -123,36 +123,30 @@
 			<p id="no-account" class="card muted" hidden>왼쪽에서 워크스페이스를 먼저 연결해주세요.</p>
 
 			<div id="content" hidden>
-				<section class="card summary">
-					<div class="summary-top">
-						<div>
-							<p class="label">이번 달 집중</p>
-							<p id="month-total" class="total"></p>
+				<section class="card grove">
+					<div id="tree" class="tree" aria-hidden="true"></div>
+					<div class="grove-body">
+						<div class="grove-top">
+							<p id="tree-stage" class="label"></p>
+							<div class="goal-box">
+								<span id="goal-text" class="muted"></span>
+								<button id="edit-goal" class="chip">목표 설정</button>
+								<form id="goal-form" class="goal-form" hidden>
+									<input id="goal-hours" type="number" min="0" max="744" step="1" placeholder="80" />
+									<span>시간</span>
+									<button type="submit" class="chip primary">저장</button>
+									<button type="button" id="cancel-goal" class="chip">취소</button>
+								</form>
+							</div>
 						</div>
-						<div class="goal-box">
-							<span id="goal-text" class="muted"></span>
-							<button id="edit-goal" class="chip">목표 설정</button>
-							<form id="goal-form" class="goal-form" hidden>
-								<input id="goal-hours" type="number" min="0" max="744" step="1" placeholder="80" />
-								<span>시간</span>
-								<button type="submit" class="chip primary">저장</button>
-								<button type="button" id="cancel-goal" class="chip">취소</button>
-							</form>
-						</div>
-					</div>
-					<div class="progress" id="progress">
-						<div id="progress-fill" class="fill"></div>
-						<div id="progress-pace" class="pace" title="오늘까지 목표 페이스"></div>
-					</div>
-					<div class="progress-legend">
-						<span id="progress-left" class="muted"></span>
-						<span id="progress-right"></span>
+						<p id="month-total" class="total"></p>
+						<p id="fairy-says" class="fairy-says"></p>
 					</div>
 				</section>
 
 				<section class="tiles">
 					<div class="card tile">
-						<p class="label">오늘</p>
+						<p id="tile-first-label" class="label">오늘</p>
 						<p id="tile-today" class="value"></p>
 						<p id="tile-today-sub" class="sub"></p>
 					</div>
@@ -161,14 +155,13 @@
 						<p id="tile-avg" class="value"></p>
 						<p id="tile-avg-sub" class="sub"></p>
 					</div>
-					<div class="card tile" id="tile-need-card">
-						<p class="label">목표까지 하루</p>
-						<p id="tile-need" class="value"></p>
-						<p id="tile-need-sub" class="sub"></p>
-						<dl id="need-detail" class="detail"></dl>
+					<div class="card tile">
+						<p class="label">최고의 날</p>
+						<p id="tile-best" class="value"></p>
+						<p id="tile-best-sub" class="sub"></p>
 					</div>
 					<div class="card tile">
-						<p class="label">집중한 날</p>
+						<p class="label">열매</p>
 						<p id="tile-days" class="value"></p>
 						<p id="tile-days-sub" class="sub"></p>
 					</div>
@@ -176,10 +169,10 @@
 
 				<section class="card chart-card">
 					<div class="chart-head">
-						<h2 id="chart-title">누적 집중 시간</h2>
+						<h2 id="chart-title">일별 집중 시간</h2>
 						<div class="segmented" role="tablist">
-							<button data-mode="cumulative" aria-selected="true">누적</button>
-							<button data-mode="daily" aria-selected="false">일별</button>
+							<button data-mode="daily" aria-selected="true">일별</button>
+							<button data-mode="cumulative" aria-selected="false">누적</button>
 						</div>
 					</div>
 					<div id="chart" class="chart"></div>

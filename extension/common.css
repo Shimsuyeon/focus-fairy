@@ -14,6 +14,13 @@
 	--focusing: #22a06b;
 	--paused: #e8930c;
 	--danger: #e5484d;
+	--sky: #eef6ff;
+	--leaf: #3faa6f;
+	--leaf-light: #6cc98f;
+	--bark: #9a6b4f;
+	--soil: #e4dccf;
+	--fruit: #ff7eb3;
+	--fruit-best: #ffc23d;
 	--shadow: 0 1px 2px rgb(31 29 43 / 6%), 0 1px 8px rgb(31 29 43 / 4%);
 	color-scheme: light;
 }
@@ -32,6 +39,12 @@
 		--accent-fg: #14131a;
 		--focusing: #3dd68c;
 		--paused: #f5a623;
+		--sky: #1c2233;
+		--leaf: #3d9a66;
+		--leaf-light: #5cbf84;
+		--bark: #8a6048;
+		--soil: #2e2a26;
+		--fruit: #ff8fbf;
 		--shadow: none;
 		color-scheme: dark;
 	}

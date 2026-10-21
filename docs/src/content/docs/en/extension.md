@@ -61,18 +61,19 @@ The team list shows **only the category**, never the plans people wrote.
 
 | Area | Content |
 |---|---|
-| This month | Monthly total and progress toward your monthly goal. The vertical mark on the bar is the goal pace up to today |
+| This month's tree | Your monthly total, with a tree that grows as you get closer to your goal (🌱 sprout → 🌳 tree → 🍎 fruit tree). **Every day you focus adds a fruit**, and your best day is a golden one |
+| Fairy's note | How much to focus per day for the rest of the month to reach your goal |
 | Today · daily average | Today's focus time and this month's daily average |
-| Per day to goal | How much you need per day for the rest of the month. Hover to see days left, time to fill and your pace up to yesterday |
-| Focus days | Days you focused this month and your 🔥 streak |
-| Chart | **Cumulative** — actual total vs. goal pace (dashed), **Daily** — bars per day. Hover for each day's values |
+| Best day | The day you focused the most this month |
+| Fruits | Days you focused this month and your 🔥 streak |
+| Chart | **Daily** — bars per day, **Cumulative** — running total this month. Hover for each day's values |
 | Categories | Time and share per category this month |
 
 Use ‹ › to look at previous months.
 
 ### Set a monthly goal
 
-Click **목표 설정** (Set goal) at the top right and enter your monthly goal in hours (e.g. `80`). Progress, per-day-to-goal and the goal pace line then appear. Enter `0` to remove the goal.
+Click **목표 설정** (Set goal) at the top right and enter your monthly goal in hours (e.g. `80`). The tree then grows toward your goal and the fairy tells you how much you need per day. Without a goal, the tree grows with the number of days you focus. Enter `0` to remove the goal.
 
 ## Channel messages
 

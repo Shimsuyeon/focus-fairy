@@ -57,15 +57,8 @@ h2 {
 
 /* ---------- 요약 ---------- */
 
-.summary-top {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 12px;
-	flex-wrap: wrap;
-}
-
 .total {
+	margin-top: 2px;
 	font-size: 24px;
 	font-weight: 800;
 	letter-spacing: -0.5px;
@@ -93,44 +86,6 @@ button.chip.primary {
 	color: var(--accent-fg);
 }
 
-.progress {
-	position: relative;
-	height: 10px;
-	margin-top: 10px;
-	border-radius: 5px;
-	background: var(--surface);
-	overflow: visible;
-}
-
-.progress .fill {
-	height: 100%;
-	max-width: 100%;
-	border-radius: 5px;
-	background: var(--accent);
-	transition: width 0.4s ease;
-}
-
-.progress .pace {
-	position: absolute;
-	top: -4px;
-	bottom: -4px;
-	width: 2px;
-	border-radius: 1px;
-	background: var(--fg);
-	opacity: 0.55;
-}
-
-.progress-legend {
-	display: flex;
-	justify-content: space-between;
-	margin-top: 8px;
-	font-size: 12px;
-}
-
-#progress-right b {
-	color: var(--accent);
-}
-
 /* ---------- 타일 ---------- */
 
 .tiles {
@@ -155,54 +110,98 @@ button.chip.primary {
 	margin-top: 1px;
 	color: var(--muted);
 	font-size: 11px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	line-height: 1.35;
 }
 
-.sub .up {
-	color: var(--focusing);
-	font-weight: 600;
+/* 이번 달의 나무 — 집중한 날마다 열매가 열리고, 목표에 가까워질수록 자란다 */
+.grove {
+	display: flex;
+	align-items: center;
+	gap: 14px;
 }
 
-.sub .down {
-	color: var(--danger);
-	font-weight: 600;
+.tree {
+	flex: none;
+	width: 112px;
+	height: 112px;
+	border-radius: 14px;
+	background: linear-gradient(180deg, var(--sky) 0%, var(--card) 100%);
 }
 
-/* 목표까지 하루 — 마우스를 올리면 자세히 */
-.detail {
-	position: absolute;
-	top: calc(100% + 6px);
-	right: 0;
-	z-index: 5;
-	display: none;
-	grid-template-columns: auto auto;
-	gap: 6px 24px;
-	min-width: 240px;
-	margin: 0;
-	padding: 12px 14px;
-	border: 1px solid var(--line);
-	border-radius: 12px;
-	background: var(--card);
-	box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+.tree svg {
+	display: block;
+	width: 100%;
+	height: 100%;
 }
 
-#tile-need-card:hover .detail:not(:empty) {
-	display: grid;
+.grove-body {
+	flex: 1;
+	min-width: 0;
 }
 
-.detail dt {
+.grove-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.fairy-says {
+	margin-top: 6px;
 	color: var(--muted);
+	font-size: 12px;
+	line-height: 1.5;
 }
 
-.detail dd {
-	margin: 0;
-	text-align: right;
-	font-weight: 600;
-	font-variant-numeric: tabular-nums;
+.fairy-says b {
+	color: var(--fg);
 }
 
+.ground {
+	fill: var(--soil);
+}
+
+.trunk {
+	fill: var(--bark);
+}
+
+.leaf {
+	fill: var(--leaf);
+}
+
+.leaf.light {
+	fill: var(--leaf-light);
+}
+
+.stem {
+	stroke: var(--leaf);
+	stroke-width: 2.5;
+	stroke-linecap: round;
+}
+
+.fruit {
+	fill: var(--fruit);
+	stroke: var(--card);
+	stroke-width: 0.8;
+}
+
+.fruit.best {
+	fill: var(--fruit-best);
+}
+
+.fruit.live {
+	animation: glow 1.6s ease-in-out infinite;
+}
+
+@keyframes glow {
+	50% {
+		opacity: 0.45;
+	}
+}
+
+.sparkle {
+	fill: var(--fruit-best);
+}
 /* ---------- 차트 ---------- */
 
 .chart-card {
