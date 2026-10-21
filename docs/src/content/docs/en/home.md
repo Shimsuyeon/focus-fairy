@@ -25,7 +25,7 @@ The view auto-refreshes every time you open it.
 | This week | Weekly cumulative + your rank in the team |
 | This month | Monthly cumulative focus time |
 | All-time | Cumulative focus time since installing the bot |
-| Quick actions | Slack status sync, workspace settings, help modal |
+| Quick actions | Slack status sync, workspace settings, [Chrome extension connection](/en/extension/), help modal |
 
 If you have no focus history yet, an **onboarding card** is shown instead of the stats — step-by-step guidance on which command to start with.
 

@@ -1,0 +1,38 @@
+{
+	"manifest_version": 3,
+	"name": "집중요정",
+	"description": "Slack에 들어가지 않고 집중요정 세션을 시작·일시정지·종료해요.",
+	"version": "0.2.0",
+	"icons": {
+		"16": "icons/icon16.png",
+		"32": "icons/icon32.png",
+		"48": "icons/icon48.png",
+		"128": "icons/icon128.png"
+	},
+	"action": {
+		"default_title": "집중요정",
+		"default_popup": "popup.html"
+	},
+	"background": {
+		"service_worker": "background.js",
+		"type": "module"
+	},
+	"permissions": ["storage", "alarms"],
+	"content_scripts": [
+		{
+			"matches": ["https://focus-fairy.suyeonshim.workers.dev/extension/connect*", "http://localhost:8787/extension/connect*"],
+			"js": ["connect.js"]
+		}
+	],
+	"host_permissions": ["https://focus-fairy.suyeonshim.workers.dev/*", "http://localhost:8787/*"],
+	"commands": {
+		"_execute_action": {
+			"suggested_key": { "default": "Alt+Shift+F" },
+			"description": "집중요정 팝업 열기"
+		},
+		"toggle-focus": {
+			"suggested_key": { "default": "Alt+Shift+S" },
+			"description": "집중 시작 / 일시정지 / 재개"
+		}
+	}
+}

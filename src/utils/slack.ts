@@ -62,6 +62,9 @@ export async function getBotToken(env: Env, teamId: string): Promise<string | nu
 
 /** 채널에 메시지 전송 (chat.postMessage API) */
 export async function postMessage(env: Env, teamId: string, channel: string, text: string): Promise<boolean> {
+	// 채널 없이 시작한 세션 (익스텐션 '채널에 안 올리기', 레거시 세션)
+	if (!channel) return false;
+
 	const token = await getBotToken(env, teamId);
 	if (!token) {
 		console.error('No bot token for team:', teamId);
@@ -283,6 +286,25 @@ export async function getUserNames(env: Env, teamId: string, userIds: string[]):
 		})
 	);
 	return names;
+}
+
+/** 워크스페이스 이름 — auth.test는 별도 권한 없이 팀 이름을 돌려준다. 실패하면 teamId */
+export async function getTeamName(env: Env, teamId: string): Promise<string> {
+	const token = await getBotToken(env, teamId);
+	if (!token) return teamId;
+
+	try {
+		const response = await fetch('https://slack.com/api/auth.test', {
+			method: 'POST',
+			headers: { Authorization: `Bearer ${token}` },
+		});
+		const data = (await response.json()) as { ok: boolean; team?: string; error?: string };
+		if (data.ok && data.team) return data.team;
+		console.error('auth.test failed:', data.error);
+	} catch (error) {
+		console.error('auth.test error:', error);
+	}
+	return teamId;
 }
 
 /** KV에서 사용자 토큰(user token) 가져오기 */

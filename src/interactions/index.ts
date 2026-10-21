@@ -12,10 +12,11 @@ import { handlePause, handleResume } from '../commands/pause';
 import { handleEnd } from '../commands/end';
 import { handleMyStats } from '../commands/mystats';
 import { handleHelp } from '../commands/help';
-import { handleSettings, getUserTimezoneInfo } from '../commands/settings';
+import { handleSettings, getUserTimezoneInfo, handleExtensionShowToken, EXTENSION_ACTION } from '../commands/settings';
 import { buildSessionPanelBlocks, PANEL_ACTION } from '../utils/sessionPanel';
 import { HOME_ACTION } from '../pages/home/render';
 import { publishHomeView } from '../pages/home';
+import { beginSession } from '../services/session';
 
 interface SlackBlock {
 	type: string;
@@ -34,6 +35,8 @@ interface SlackInteractionPayload {
 	message?: { ts: string; text: string; blocks?: SlackBlock[] };
 	actions?: Array<{ action_id: string; value?: string; block_id?: string }>;
 	view?: {
+		id?: string;
+		hash?: string;
 		callback_id: string;
 		private_metadata: string;
 		state: {
@@ -110,6 +113,10 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env, or
 		return handleConfirmEndDuration(payload, env);
 	}
 
+	if (actionId === EXTENSION_ACTION.showToken && payload.view) {
+		return handleExtensionShowToken(env, payload.user.team_id, payload.user.id, payload.view);
+	}
+
 	if (actionId === 'disconnect_status_sync') {
 		return handleDisconnectStatusSync(payload, env);
 	}
@@ -118,7 +125,7 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env, or
 		return handleSessionPanelAction(payload, env);
 	}
 
-	if (actionId === HOME_ACTION.help || actionId === HOME_ACTION.settings || actionId === HOME_ACTION.settingsSync) {
+	if (actionId === HOME_ACTION.help || actionId === HOME_ACTION.settings || actionId === HOME_ACTION.settingsSync || actionId === HOME_ACTION.extension) {
 		return handleHomeQuickAction(payload, env, origin);
 	}
 
@@ -148,6 +155,10 @@ async function handleHomeQuickAction(payload: SlackInteractionPayload, env: Env,
 
 	if (actionId === HOME_ACTION.settings) {
 		return handleSettings(env, user.team_id, user.id, trigger_id, '', origin);
+	}
+
+	if (actionId === HOME_ACTION.extension) {
+		return handleSettings(env, user.team_id, user.id, trigger_id, 'extension', origin);
 	}
 
 	if (actionId === HOME_ACTION.settingsSync) {
@@ -402,17 +413,7 @@ async function handleStartPlanSubmission(
 		}), { headers: { 'Content-Type': 'application/json' } });
 	}
 
-	const checkinData = JSON.stringify({ time: now, label: planText, tag, channelId });
-	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
-
-	await setUserStatus(env, teamId, userId, '집중 중', ':computer:');
-
-	const todayKey = getTodayKey();
-	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');
-	if (!todayList.includes(userId)) {
-		todayList.push(userId);
-		await env.STUDY_KV.put(`${teamId}:today:${todayKey}`, JSON.stringify(todayList));
-	}
+	await beginSession(env, teamId, userId, now, { channelId, label: planText, tag });
 
 	const lines = planText.split('\n').filter((l: string) => l.trim());
 	const planDisplay = lines.length > 1
