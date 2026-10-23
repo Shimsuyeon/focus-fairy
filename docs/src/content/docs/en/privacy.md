@@ -7,7 +7,7 @@ sidebar:
 
 focus-fairy handles only the information it needs to record and show your focus time. This policy covers both the **focus-fairy Slack bot** and the **focus-fairy Chrome extension**.
 
-Effective date: October 22, 2026
+Effective date: October 22, 2026 (updated October 24, 2026: reading Slack status)
 
 ## Information we collect
 
@@ -25,6 +25,7 @@ Effective date: October 22, 2026
 | Workspace settings (auto-record threshold, default time zone, etc.) | Session handling |
 | Bot token for the installed workspace | Sending Slack messages, looking up user names |
 | User token, if you connect [Slack status sync](/en/settings/sync/) | Update your status (only users who connect it) |
+| The status you set yourself before a session, and the last status focus-fairy showed | Keep your own status and restore it after a session (status sync users only; deleted once restored) |
 
 ### Stored in your browser by the Chrome extension
 
@@ -53,7 +54,7 @@ The extension's content script runs **only on the focus-fairy connection page** 
 | Provider | Purpose |
 |---|---|
 | Cloudflare (Workers, Workers KV) | Running the server, storing data |
-| Slack | Sending messages, looking up user names, updating status |
+| Slack | Sending messages, looking up user names, reading and updating status |
 
 ## Retention and deletion
 

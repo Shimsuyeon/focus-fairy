@@ -4,9 +4,10 @@
  */
 
 import { renderInstallPage, renderResultPage, renderUserOAuthResultPage } from './render';
+import { PROFILE_READ_SCOPE, saveUserTokenScope } from '../../services/slackStatus';
 
 const BOT_SCOPES = ['commands', 'chat:write', 'users:read', 'files:write', 'im:write'].join(',');
-const USER_SCOPES = 'users.profile:write';
+const USER_SCOPES = ['users.profile:write', PROFILE_READ_SCOPE].join(',');
 
 interface OAuthResponse {
 	ok: boolean;
@@ -139,6 +140,7 @@ export async function handleUserOAuthCallback(request: Request, env: Env): Promi
 		const userId = data.authed_user.id;
 		console.log(`User OAuth success: team=${teamId}, user=${userId}`);
 		await env.STUDY_KV.put(`${teamId}:userToken:${userId}`, data.authed_user.access_token);
+		await saveUserTokenScope(env, teamId, userId, data.authed_user.scope);
 
 		return htmlResponse(renderUserOAuthResultPage(true, 'Slack status 동기화가\n연결되었어요!'));
 	} catch (err) {

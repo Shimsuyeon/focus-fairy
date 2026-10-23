@@ -15,4 +15,4 @@ sidebar:
 
 다른 Slack 앱과 명령어가 겹칠 때는 `/fend`로도 같은 동작을 호출할 수 있어요. 자세한 내용은 [명령어 충돌 회피](/commands/aliases/)를 참고하세요.
 
-종료하면 채널에 응원 메시지와 함께 세션 결과가 표시되고, Slack status는 자동으로 해제돼요.
+종료하면 채널에 응원 메시지와 함께 세션 결과가 표시되고, [`/settings sync`](/settings/sync/) 를 연결했다면 Slack status가 "💤 오늘 N시간 N분 집중"으로 바뀌고 다음 날 오전 6시에 사라져요.

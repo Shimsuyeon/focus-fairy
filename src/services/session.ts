@@ -4,7 +4,8 @@
 
 import type { Session } from '../types';
 import { formatDuration } from '../utils/format';
-import { getUserNames, setUserStatus } from '../utils/slack';
+import { getUserNames } from '../utils/slack';
+import { applyStartStatus } from './slackStatus';
 import { getWeekRangeForDate, getTodayKey } from '../utils/date';
 import { MEDALS } from '../constants/messages';
 
@@ -84,7 +85,7 @@ export async function beginSession(
 		await env.STUDY_KV.put(`${teamId}:lastChannel:${userId}`, channelId);
 	}
 
-	await setUserStatus(env, teamId, userId, '집중 중', ':computer:');
+	await applyStartStatus(env, teamId, userId);
 
 	const todayKey = getTodayKey();
 	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');
