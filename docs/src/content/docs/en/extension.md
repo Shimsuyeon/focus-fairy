@@ -11,11 +11,18 @@ Sessions are saved in the same place as the Slack commands. You can start in the
 
 ## Install
 
-:::note[Coming to the Chrome Web Store]
-We're preparing a Chrome Web Store listing. Once it's live, an **install link** will appear here so you can install with one click and get automatic updates. Until then, install it in developer mode as below.
+1. Open [**focus-fairy on the Chrome Web Store**](https://chromewebstore.google.com/detail/hoaigcnbolebecjdidhnhkjdmohhiclp) and click **Add to Chrome**.
+2. Pin focus-fairy from the puzzle icon in the toolbar.
+
+When installed from the Chrome Web Store, the extension updates automatically when a new version is released.
+
+:::note
+focus-fairy is an **unlisted** item, so it doesn't show up in Chrome Web Store search. Use the link above.
 :::
 
-### Install in developer mode
+### Install in developer mode (for development)
+
+Use this only when you're changing the extension code and testing it yourself.
 
 1. Download the [GitHub repository](https://github.com/Shimsuyeon/focus-fairy) (**Code → Download ZIP** and unzip, or `git clone`).
 2. Open `chrome://extensions` and turn on **Developer mode** (top right).
@@ -115,6 +122,9 @@ Yes. The extension syncs whenever you open the popup and every 5 minutes.
 
 **What if I end a session that ran for more than 6 hours?**
 Same as [`/end`](/en/commands/end/) in Slack: above the workspace's auto-record threshold (6 hours by default, configurable in `/settings`) you're asked to confirm, and you can enter the actual focus time yourself.
+
+**I was using the developer-mode install.**
+The Chrome Web Store version has a different extension ID, so it installs separately. After installing it, **remove** the developer-mode version in `chrome://extensions` and connect once more from Slack. Your records live on the server, so nothing is lost.
 
 **What information is stored?**
 See the [privacy policy](/en/privacy/). The extension stores only your connection token and settings in the browser, and never reads the websites you visit or your tabs.

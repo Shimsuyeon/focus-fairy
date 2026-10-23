@@ -6,6 +6,7 @@
  */
 
 const DOCS_URL = 'https://focus-fairy-docs.pages.dev/extension/';
+const STORE_URL = 'https://chromewebstore.google.com/detail/hoaigcnbolebecjdidhnhkjdmohhiclp';
 
 export function handleExtensionConnectPage(): Response {
 	const html = `<!doctype html>
@@ -42,7 +43,7 @@ export function handleExtensionConnectPage(): Response {
 			var status = document.getElementById('ff-connect-status');
 			if (status.dataset.state !== 'waiting') return;
 			status.dataset.state = 'error';
-			status.innerHTML = '집중요정 크롬 익스텐션을 찾지 못했어요.<br>설치되어 있다면 <b>chrome://extensions</b> 에서 새로고침한 뒤 이 페이지를 다시 열어주세요.<br><a href="${DOCS_URL}">설치 가이드 보기</a>';
+			status.innerHTML = '집중요정 크롬 익스텐션을 찾지 못했어요.<br><a href="${STORE_URL}">크롬 웹스토어에서 설치</a>한 뒤 Slack에서 다시 연결해주세요.<br>이미 설치했다면 <b>chrome://extensions</b> 에서 새로고침한 뒤 이 페이지를 다시 열어주세요.<br><a href="${DOCS_URL}">설치 가이드 보기</a>';
 		}, 3000);
 	</script>
 </body>
