@@ -30,7 +30,7 @@ Click **focus-fairy** in the Slack sidebar and open the **Home** tab. You'll see
 
 ## 5. Connect the Chrome extension (optional)
 
-To start and stop sessions from your browser toolbar without opening Slack, install the [Chrome extension](/en/extension/). Issue a token with the **크롬 익스텐션 연결** button in the Home tab or `/settings extension`, then paste it into the extension.
+To start and stop sessions from your browser toolbar without opening Slack, install the focus-fairy extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/hoaigcnbolebecjdidhnhkjdmohhiclp). Click **익스텐션에 연결하기** (Connect the extension) from the **크롬 익스텐션 연결** button in the Home tab or `/settings extension`, and it connects automatically. See the [Chrome extension guide](/en/extension/) for details.
 
 :::note
 English documentation is a work in progress. See the [Korean docs](/) for the most complete reference.

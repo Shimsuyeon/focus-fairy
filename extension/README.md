@@ -4,7 +4,9 @@ Slack에 들어가지 않고 툴바 팝업에서 집중 세션을 시작·일시
 
 ## 설치
 
-크롬 웹스토어 등록을 준비 중이에요 (Unlisted). 그 전까지는 개발자 모드로 설치해요.
+[크롬 웹스토어](https://chromewebstore.google.com/detail/hoaigcnbolebecjdidhnhkjdmohhiclp) (미등록 · 링크로만 설치)에서 **Chrome에 추가**.
+
+### 개발자 모드 (개발용)
 
 1. `chrome://extensions` 접속 → 오른쪽 위 **개발자 모드** 켜기
 2. **압축해제된 확장 프로그램을 로드합니다** → 이 `extension/` 폴더 선택
