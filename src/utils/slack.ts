@@ -312,13 +312,28 @@ export async function getUserToken(env: Env, teamId: string, userId: string): Pr
 	return await env.STUDY_KV.get(`${teamId}:userToken:${userId}`);
 }
 
+/** Slack status 한 건 — expiration은 Unix 초, 0이면 무기한 */
+export interface SlackStatus {
+	text: string;
+	emoji: string;
+	expiration: number;
+}
+
+/** user token과 status 동기화 관련 키 정리 (연결 해제, 토큰 만료) */
+export async function forgetUserToken(env: Env, teamId: string, userId: string): Promise<void> {
+	await Promise.all(
+		['userToken', 'userTokenScope', 'statusOwned', 'statusSaved'].map((k) => env.STUDY_KV.delete(`${teamId}:${k}:${userId}`))
+	);
+}
+
 /** 사용자의 Slack status 설정 (user token 필요) */
 export async function setUserStatus(
 	env: Env,
 	teamId: string,
 	userId: string,
 	statusText: string,
-	statusEmoji: string
+	statusEmoji: string,
+	statusExpiration = 0
 ): Promise<boolean> {
 	const token = await getUserToken(env, teamId, userId);
 	if (!token) {
@@ -337,7 +352,7 @@ export async function setUserStatus(
 				profile: {
 					status_text: statusText,
 					status_emoji: statusEmoji,
-					status_expiration: 0,
+					status_expiration: statusExpiration,
 				},
 			}),
 		});
@@ -346,7 +361,7 @@ export async function setUserStatus(
 		if (!data.ok) {
 			console.error('Failed to set user status:', data.error);
 			if (data.error === 'token_revoked' || data.error === 'invalid_auth') {
-				await env.STUDY_KV.delete(`${teamId}:userToken:${userId}`);
+				await forgetUserToken(env, teamId, userId);
 			}
 			return false;
 		}
@@ -357,9 +372,37 @@ export async function setUserStatus(
 	}
 }
 
-/** 사용자의 Slack status 초기화 */
-export async function clearUserStatus(env: Env, teamId: string, userId: string): Promise<boolean> {
-	return setUserStatus(env, teamId, userId, '', '');
+/** 사용자의 현재 Slack status 읽기 (users.profile:read 필요). 읽을 수 없으면 null */
+export async function getUserStatus(env: Env, teamId: string, userId: string): Promise<SlackStatus | null> {
+	const token = await getUserToken(env, teamId, userId);
+	if (!token) return null;
+
+	try {
+		const response = await fetch('https://slack.com/api/users.profile.get', {
+			method: 'POST',
+			headers: { Authorization: `Bearer ${token}` },
+		});
+		const data = (await response.json()) as {
+			ok: boolean;
+			profile?: { status_text?: string; status_emoji?: string; status_expiration?: number };
+			error?: string;
+		};
+		if (!data.ok || !data.profile) {
+			console.error('Failed to get user status:', data.error);
+			if (data.error === 'token_revoked' || data.error === 'invalid_auth') {
+				await forgetUserToken(env, teamId, userId);
+			}
+			return null;
+		}
+		return {
+			text: data.profile.status_text || '',
+			emoji: data.profile.status_emoji || '',
+			expiration: data.profile.status_expiration || 0,
+		};
+	} catch (error) {
+		console.error('Failed to get user status:', error);
+		return null;
+	}
 }
 
 /** Slack users.info API 응답 타입 */

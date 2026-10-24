@@ -3,7 +3,7 @@
  * 모달 제출, 버튼 클릭 등 interactive component 이벤트 처리
  */
 
-import { postMessage, postMessageWithBlocks, updateMessage, getBotToken, postEphemeral, respondToInteraction, setUserStatus } from '../utils/slack';
+import { postMessage, postMessageWithBlocks, updateMessage, getBotToken, postEphemeral, respondToInteraction, forgetUserToken } from '../utils/slack';
 import { formatTime } from '../utils/format';
 import { getTodayKey } from '../utils/date';
 import { SESSION_TAGS, DEFAULT_TAG } from '../constants/messages';
@@ -17,6 +17,7 @@ import { buildSessionPanelBlocks, PANEL_ACTION } from '../utils/sessionPanel';
 import { HOME_ACTION } from '../pages/home/render';
 import { publishHomeView } from '../pages/home';
 import { beginSession } from '../services/session';
+import { applyStartStatus } from '../services/slackStatus';
 
 interface SlackBlock {
 	type: string;
@@ -759,7 +760,7 @@ async function handleAprilFoolsAction(
 	const checkinData = JSON.stringify(label ? { time: now, label, channelId } : { time: now, channelId });
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
 
-	await setUserStatus(env, teamId, userId, '집중 중', ':computer:');
+	await applyStartStatus(env, teamId, userId);
 
 	const todayKey = getTodayKey();
 	const todayList: string[] = JSON.parse((await env.STUDY_KV.get(`${teamId}:today:${todayKey}`)) || '[]');
@@ -1032,7 +1033,7 @@ export function buildFinalChecklistBlocks(userId: string, startTime: number, ite
 /** Status sync 연결 해제 */
 async function handleDisconnectStatusSync(payload: SlackInteractionPayload, env: Env): Promise<Response> {
 	const { user, channel } = payload;
-	await env.STUDY_KV.delete(`${user.team_id}:userToken:${user.id}`);
+	await forgetUserToken(env, user.team_id, user.id);
 
 	if (channel) {
 		await postEphemeral(env, user.team_id, channel.id, user.id, '🔌 Slack status 동기화가 해제되었어요. `/settings sync`로 다시 연결할 수 있어요.');

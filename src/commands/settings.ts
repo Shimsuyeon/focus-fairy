@@ -6,6 +6,7 @@
 import { replyEphemeral, getBotToken, getUserTimezone, getUserToken, getTeamName, getUserName } from '../utils/slack';
 import { MAX_AUTO_DURATION } from '../constants/messages';
 import { issueApiToken, createConnectCode } from '../api/auth';
+import { canReadUserStatus } from '../services/slackStatus';
 
 export type TimezoneLabelMode = 'auto' | 'always' | 'never';
 
@@ -261,6 +262,12 @@ export async function handleSettings(
 	return new Response('', { status: 200 });
 }
 
+const SYNC_STATUS_MAPPING =
+	'`/start`, `/pause`, `/end` 시 Slack status가 자동으로 바뀌어요.\n\n' +
+	'• `/start` · `/resume` → 💻 집중 중\n' +
+	'• `/pause` → ☕ 잠깐 자리비움\n' +
+	'• `/end` → 💤 오늘 2시간 40분 집중 _(다음 날 오전 6시에 사라져요)_';
+
 async function handleSyncSettings(
 	env: Env,
 	teamId: string,
@@ -268,8 +275,11 @@ async function handleSyncSettings(
 	baseUrl?: string
 ): Promise<Response> {
 	const hasToken = !!(await getUserToken(env, teamId, userId));
+	const oauthUrl = baseUrl ? `${baseUrl}/slack/oauth/user-install` : '';
 
 	if (hasToken) {
+		// 예전에 연결한 사용자는 status 읽기 권한이 없다 — 다시 허용하면 직접 설정한 status를 지켜준다
+		const needsReauth = !(await canReadUserStatus(env, teamId, userId));
 		return new Response(JSON.stringify({
 			response_type: 'ephemeral',
 			text: '💻 Slack status 동기화: 연결됨',
@@ -278,9 +288,22 @@ async function handleSyncSettings(
 					type: 'section',
 					text: {
 						type: 'mrkdwn',
-						text: '💻 *Slack status 동기화: 연결됨* ✅\n\n`/start`, `/pause`, `/end` 시 Slack status가 자동으로 변경돼요.',
+						text: `💻 *Slack status 동기화: 연결됨* ✅\n\n${SYNC_STATUS_MAPPING}`,
 					},
 				},
+				...(needsReauth && oauthUrl ? [{
+					type: 'section',
+					text: {
+						type: 'mrkdwn',
+						text: '🛡️ *권한을 다시 허용하면 직접 설정한 status를 지켜줘요*\n"회의 중", "재택근무"처럼 직접 설정한 status를 덮어쓰지 않고, 집중이 끝나면 원래 status로 되돌려요.',
+					},
+					accessory: {
+						type: 'button',
+						text: { type: 'plain_text', text: '🔄 권한 다시 허용하기' },
+						url: oauthUrl,
+						action_id: 'connect_status_sync',
+					},
+				}] : []),
 				{
 					type: 'actions',
 					elements: [
@@ -302,8 +325,6 @@ async function handleSyncSettings(
 		}), { headers: { 'Content-Type': 'application/json' } });
 	}
 
-	const oauthUrl = baseUrl ? `${baseUrl}/slack/oauth/user-install` : '';
-
 	return new Response(JSON.stringify({
 		response_type: 'ephemeral',
 		text: '💻 Slack status 동기화: 연결 안됨',
@@ -312,8 +333,7 @@ async function handleSyncSettings(
 				type: 'section',
 				text: {
 					type: 'mrkdwn',
-					text: '💻 *Slack status 동기화*\n\n연결하면 `/start`, `/pause`, `/end` 시 Slack status가 자동으로 변경돼요.\n\n' +
-						'• `/start` → 💻 집중 중\n• `/pause` → ☕ 잠깐 자리비움\n• `/end` → status 초기화',
+					text: `💻 *Slack status 동기화*\n\n연결하면 ${SYNC_STATUS_MAPPING}\n\n직접 설정한 status("회의 중" 등)는 덮어쓰지 않고, 집중이 끝나면 원래 status로 되돌려요.`,
 				},
 			},
 			...(oauthUrl ? [{

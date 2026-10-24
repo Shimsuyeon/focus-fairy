@@ -3,10 +3,11 @@
  */
 
 import type { Session } from '../types';
-import { reply, replyEphemeral, postMessage, updateMessage, getUserName, clearUserStatus } from '../utils/slack';
+import { reply, replyEphemeral, postMessage, updateMessage, getUserName } from '../utils/slack';
 import { formatTime, formatDuration, parseDuration, calcLunchDeduction } from '../utils/format';
 import { getDateKey, isCurrentWeek, isAprilFools } from '../utils/date';
 import { getWeekTotalForDate } from '../services/session';
+import { applyEndStatus } from '../services/slackStatus';
 import { ENCOURAGEMENTS, APRIL_FOOLS_ENCOURAGEMENTS, SESSION_TAGS } from '../constants/messages';
 import { buildFinalChecklistBlocks } from '../interactions';
 import { getWorkspaceSettings, getUserTimezoneInfo } from './settings';
@@ -92,7 +93,9 @@ export async function completeEndSession(
 
 	await env.STUDY_KV.delete(`${teamId}:checkin:${userId}`);
 
-	await clearUserStatus(env, teamId, userId);
+	// 세션이 기록된 날(시작일)의 누적 — 자정을 넘겨 끝나도 통계와 같은 숫자
+	const dayTotalMs = sessions.filter((s) => s.userId === userId).reduce((sum, s) => sum + s.duration, 0);
+	await applyEndStatus(env, teamId, userId, { dayTotalMs, isToday: sessionDate === getDateKey(now), now });
 
 	if (messageTs && msgChannelId && label && checked) {
 		const tagLabel = tag ? (SESSION_TAGS.find(t => t.value === tag)?.label || '기타') : undefined;

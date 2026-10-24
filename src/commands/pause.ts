@@ -3,7 +3,8 @@
  * 집중 세션 일시정지 / 재개
  */
 
-import { reply, replyEphemeral, postMessage, setUserStatus } from '../utils/slack';
+import { reply, replyEphemeral, postMessage } from '../utils/slack';
+import { applyPauseStatus } from '../services/slackStatus';
 import { formatTime, formatDuration } from '../utils/format';
 import { getUserTimezoneInfo } from './settings';
 
@@ -37,7 +38,7 @@ export async function handlePause(
 	data.pausedAt = now;
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, JSON.stringify(data));
 
-	await setUserStatus(env, teamId, userId, '잠깐 자리비움', ':coffee:');
+	await applyPauseStatus(env, teamId, userId, true);
 
 	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
 	const elapsed = formatDuration(now - (data.time as number) - ((data.totalPauseDuration as number) || 0));
@@ -86,7 +87,7 @@ export async function handleResume(
 	delete data.pausedAt;
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, JSON.stringify(data));
 
-	const resumeStatusResult = await setUserStatus(env, teamId, userId, '집중 중', ':computer:');
+	const resumeStatusResult = await applyPauseStatus(env, teamId, userId, false);
 
 	const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
 	const publicMessage = `:fairy-wand: <@${userId}>님이 다시 집중을 시작했어요! (${formatTime(now, tzInfo.timezone, tzInfo.showLabel)}, 휴식 ${formatDuration(pauseDuration)})`;
