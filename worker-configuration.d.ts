@@ -12,6 +12,7 @@ declare namespace Cloudflare {
 		SLACK_CLIENT_SECRET: string;
 		DEFAULT_TEAM_ID: string;
 		APRIL_FOOLS_TEAM_IDS?: string;
+		ADMIN_TOKEN?: string;
 	}
 }
 interface Env extends Cloudflare.Env {}
