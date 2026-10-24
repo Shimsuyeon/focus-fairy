@@ -24,6 +24,7 @@ import { handleOAuthInstall, handleOAuthCallback, handleUserOAuthInstall, handle
 import { handleInteraction } from './interactions';
 import { handleEvent } from './events';
 import { handleApi } from './api';
+import { handleAdmin } from './admin';
 import { handleExtensionConnectPage } from './pages/extension/connect';
 import { rememberChannel } from './services/session';
 
@@ -34,6 +35,11 @@ export default {
 		// 익스텐션용 REST API
 		if (url.pathname.startsWith('/api/')) {
 			return handleApi(request, env, url);
+		}
+
+		// 운영자 전용 사용 현황
+		if (url.pathname.startsWith('/admin/')) {
+			return handleAdmin(request, env, url);
 		}
 
 		// GET 요청 라우팅

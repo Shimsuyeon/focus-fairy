@@ -51,7 +51,12 @@ npx wrangler deploy
 
 # 시크릿 설정 (멀티 워크스페이스)
 echo '{"TEAM_ID_1":"xoxb-...", "TEAM_ID_2":"xoxb-..."}' | npx wrangler secret put SLACK_BOT_TOKENS
+
+# 운영자 사용 현황 페이지 비밀번호 (설정하지 않으면 /admin/usage 는 404)
+npx wrangler secret put ADMIN_TOKEN
 ```
+
+> 📊 **운영자 사용 현황**: `/admin/usage` (HTTP Basic 인증, 비밀번호 = `ADMIN_TOKEN`, 사용자 이름은 아무거나). 워크스페이스별 7일·30일 사용자, 일별·주별 사용자와 유지율, 익스텐션 사용 비율 같은 **합계만** 보여줘요. `?format=json` 으로 JSON.
 
 ## 🌳 집중의 나무 (Focus Tree)
 
