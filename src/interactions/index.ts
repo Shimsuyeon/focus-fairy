@@ -757,7 +757,7 @@ async function handleAprilFoolsAction(
 	// 세션 시작
 	const now = Date.now();
 	const label = text && text !== 'plan' ? text : '';
-	const checkinData = JSON.stringify(label ? { time: now, label, channelId } : { time: now, channelId });
+	const checkinData = JSON.stringify(label ? { time: now, label, channelId, source: 'slack' } : { time: now, channelId, source: 'slack' });
 	await env.STUDY_KV.put(`${teamId}:checkin:${userId}`, checkinData);
 
 	await applyStartStatus(env, teamId, userId);

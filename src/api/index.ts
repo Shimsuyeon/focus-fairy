@@ -139,7 +139,7 @@ async function startSession(request: Request, env: Env, { teamId, userId }: ApiI
 	}
 
 	const now = Date.now();
-	await beginSession(env, teamId, userId, now, { channelId, label, tag });
+	await beginSession(env, teamId, userId, now, { channelId, label, tag, source: 'extension' });
 
 	if (channelId) {
 		const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
@@ -231,7 +231,7 @@ async function endSession(request: Request, env: Env, { teamId, userId }: ApiIde
 	}
 
 	const channelId = checkin.msgChannelId || '';
-	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin, tzInfo, lunchDeducted);
+	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin, tzInfo, lunchDeducted, 'extension');
 	return json(request, { ok: true, duration, durationLabel, session: { state: 'idle' } });
 }
 
