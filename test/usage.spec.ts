@@ -1,6 +1,6 @@
 import { env, SELF } from 'cloudflare:test';
 import { describe, it, expect } from 'vitest';
-import { buildUsageReport } from '../src/admin/usage';
+import { buildUsageReport, renderUsageText, type UsageKVReader } from '../src/services/usage';
 import { issueApiToken } from '../src/api/auth';
 import type { Session } from '../src/types';
 
@@ -17,13 +17,22 @@ async function seed(teamId: string, date: string, sessions: Session[]) {
 	await env.STUDY_KV.put(`${teamId}:sessions:${date}`, JSON.stringify(sessions));
 }
 
-function admin(path: string, password?: string) {
-	return SELF.fetch(`https://example.com${path}`, {
-		headers: password === undefined ? {} : { Authorization: `Basic ${btoa(`ops:${password}`)}` },
-	});
-}
+/** 테스트 KV를 로컬 스크립트와 같은 읽기 전용 인터페이스로 */
+const kv: UsageKVReader = {
+	async listKeys() {
+		const names: string[] = [];
+		let cursor: string | undefined;
+		do {
+			const page = await env.STUDY_KV.list({ cursor });
+			names.push(...page.keys.map((k) => k.name));
+			cursor = page.list_complete ? undefined : page.cursor;
+		} while (cursor);
+		return names;
+	},
+	get: (key) => env.STUDY_KV.get(key),
+};
 
-describe('운영자 사용 현황 집계', () => {
+describe('사용 현황 집계 (npm run usage)', () => {
 	it('워크스페이스별 · 일별 · 주별 · 기능 합계', async () => {
 		await env.STUDY_KV.put('tokens:T_A', 'xoxb-a');
 		await env.STUDY_KV.put('tokens:T_GONE', 'xoxb-gone');
@@ -39,19 +48,20 @@ describe('운영자 사용 현황 집계', () => {
 		// 같은 사용자 ID라도 다른 워크스페이스면 다른 사람
 		await seed('T_B', '2026-10-22', [s('u1', '2026-10-22T09:00:00', 1)]);
 		await env.STUDY_KV.put('T_A:checkin:u1', JSON.stringify({ time: NOW - H }));
+		await env.STUDY_KV.put('T_GONE:checkin:x1', JSON.stringify({ time: KST('2026-07-02T09:00:00') }));
 		await env.STUDY_KV.put('T_A:goal:u1', String(40 * H));
 		await env.STUDY_KV.put('T_A:userToken:u3', 'xoxp-u3');
 
-		const r = await buildUsageReport(env, NOW);
+		const r = await buildUsageReport(kv, { now: NOW, teamName: async (id) => (id === 'T_A' ? '모각코 스터디' : id) });
 
-		expect(r.totals).toMatchObject({ teams: 3, activeTeams30: 2, users30: 4, users7: 3, sessions30: 6, focusMs30: 10 * H, focusingNow: 1 });
+		expect(r.totals).toMatchObject({ teams: 3, activeTeams30: 2, users30: 4, users7: 3, sessions30: 6, focusMs30: 10 * H, focusingNow: 1, staleCheckins: 1 });
 
 		const a = r.teams.find((t) => t.teamId === 'T_A')!;
 		expect(a).toMatchObject({ installed: true, users30: 3, users7: 2, sessions30: 5, focusMs30: 9 * H, activeDays30: 3, focusingNow: 1, lastActive: '2026-10-24' });
 		const gone = r.teams.find((t) => t.teamId === 'T_GONE')!;
 		expect(gone).toMatchObject({ installed: true, users30: 0, sessions30: 0, lastActive: '2026-07-02' });
 		expect(r.teams.find((t) => t.teamId === 'T_B')).toMatchObject({ installed: false, users30: 1 });
-		expect(r.teams[0].teamId).toBe('T_A');
+		expect(r.teams[0]).toMatchObject({ teamId: 'T_A', name: '모각코 스터디' });
 
 		expect(r.daily).toHaveLength(30);
 		expect(r.daily.at(-1)).toEqual({ date: '2026-10-24', users: 1, sessions: 1, focusMs: 2 * H, extensionSessions: 0 });
@@ -78,28 +88,21 @@ describe('운영자 사용 현황 집계', () => {
 
 	it('결과에 사용자 ID와 계획 내용이 들어가지 않는다', async () => {
 		await seed('T_P', '2026-10-24', [s('U_SECRET_ID', '2026-10-24T09:00:00', 1, { label: '비밀 계획' })]);
-		const text = JSON.stringify(await buildUsageReport(env, NOW));
-		expect(text).not.toContain('U_SECRET_ID');
-		expect(text).not.toContain('비밀 계획');
+		const report = await buildUsageReport(kv, { now: NOW });
+		for (const text of [JSON.stringify(report), renderUsageText(report)]) {
+			expect(text).not.toContain('U_SECRET_ID');
+			expect(text).not.toContain('비밀 계획');
+		}
 	});
 
-	it('Basic 인증 — 비밀번호 없거나 틀리면 401, 맞으면 HTML / JSON', async () => {
-		const none = await admin('/admin/usage');
-		expect(none.status).toBe(401);
-		expect(none.headers.get('WWW-Authenticate')).toContain('Basic');
-		expect((await admin('/admin/usage', 'wrong')).status).toBe(401);
-
-		const page = await admin('/admin/usage', 'test-admin-token');
-		expect(page.status).toBe(200);
-		expect(page.headers.get('Cache-Control')).toBe('no-store');
-		expect(await page.text()).toContain('집중요정 사용 현황');
-
-		const json = await admin('/admin/usage?format=json', 'test-admin-token');
-		expect((await json.json()) as object).toHaveProperty('totals');
-	});
-
-	it('다른 /admin 경로는 404', async () => {
-		expect((await admin('/admin/other', 'test-admin-token')).status).toBe(404);
+	it('터미널 출력 — 워크스페이스 표, 주별, 일별, 기능', async () => {
+		await seed('T_A', '2026-10-24', [s('u1', '2026-10-24T09:00:00', 2, { source: 'extension' })]);
+		const text = renderUsageText(await buildUsageReport(kv, { now: NOW, teamName: async () => '모각코 스터디' }));
+		expect(text).toContain('최근 30일 · 2026-10-24 15:00 KST');
+		expect(text).toContain('모각코 스터디 (T_A)');
+		expect(text).toContain('■ 주별 사용자');
+		expect(text).toContain('10/24');
+		expect(text).toMatch(/익스텐션에서 시작\s+100%\s+1/);
 	});
 });
 

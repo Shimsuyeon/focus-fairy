@@ -5,6 +5,7 @@
 	"scripts": {
 		"deploy": "wrangler deploy",
 		"pack:extension": "node scripts/pack-extension.mjs",
+		"usage": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/usage.mts",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest",
