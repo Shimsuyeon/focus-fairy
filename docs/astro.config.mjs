@@ -25,6 +25,7 @@ export default defineConfig({
 						{ label: '설치하기', translations: { en: 'Installation' }, slug: 'getting-started' },
 						{ label: 'App Home 탭', translations: { en: 'App Home tab' }, slug: 'home' },
 						{ label: '크롬 익스텐션', translations: { en: 'Chrome extension' }, slug: 'extension' },
+						{ label: '모바일 웹앱', translations: { en: 'Mobile web app' }, slug: 'app' },
 					],
 				},
 				{

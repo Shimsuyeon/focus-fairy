@@ -24,6 +24,7 @@
 | `/settings` | 워크스페이스 설정 (자동 기록 임계값, 기본 시간대, 라벨 표시 모드)        |
 | `/settings sync` | Slack status 자동 동기화 연결/해제                                  |
 | `/settings extension` | 크롬 익스텐션 연결 토큰 발급                                   |
+| `/settings app` | 폰 웹앱(홈 화면 앱) 연결 링크·코드                                  |
 
 > 💡 다른 Slack 앱(예: Hermes Agent)과 명령어가 충돌할 때는 `/fstart`, `/fend`, `/fpause`, `/fresume` alias를 사용하세요. 자세한 내용은 [docs](https://focus-fairy-docs.pages.dev/commands/aliases/) 참고.
 >
@@ -32,6 +33,8 @@
 > 🏠 Slack 사이드바에서 봇 이름을 클릭하면 **App Home 탭**에서 본인 통계(오늘/이번 주/전체 누적 + 팀 내 랭킹)와 빠른 진입 버튼을 한눈에 볼 수 있어요. 자세한 내용은 [App Home 가이드](https://focus-fairy-docs.pages.dev/home/) 참고.
 >
 > 🧩 **크롬 익스텐션**으로 Slack에 들어가지 않고 툴바 팝업에서 세션을 시작·쉬어가기·종료하고, 오늘 함께 집중한 팀원과 집중한 날마다 열매가 열리는 **이번 달의 나무**와 통계를 볼 수 있어요. 여러 워크스페이스 전환도 지원해요. [크롬 웹스토어](https://chromewebstore.google.com/detail/hoaigcnbolebecjdidhnhkjdmohhiclp)에서 설치하고, 연결 방법은 [익스텐션 가이드](https://focus-fairy-docs.pages.dev/extension/) 참고.
+>
+> 📱 **모바일 웹앱**: `/app` 을 폰 홈 화면에 추가하면 앱스토어 없이 같은 화면을 앱처럼 쓸 수 있어요. 익스텐션 팝업 코드를 그대로 쓰고(`scripts/build-web.mjs` 가 `dist/web` 으로 모음, deploy·dev 때 자동), 연결은 `/settings app` 의 링크나 8자리 코드로 해요. [웹앱 가이드](https://focus-fairy-docs.pages.dev/app/) 참고.
 
 ## 🛠 기술 스택
 
@@ -53,7 +56,7 @@ npx wrangler deploy
 echo '{"TEAM_ID_1":"xoxb-...", "TEAM_ID_2":"xoxb-..."}' | npx wrangler secret put SLACK_BOT_TOKENS
 ```
 
-> 📊 **운영자 사용 현황**: `npm run usage` (로컬 전용, wrangler 로그인 필요). 운영 KV를 읽기만 해서 워크스페이스별 7일·30일 사용자, 주별 신규·유지율, 일별 사용자, 익스텐션·기능 사용 비율 같은 **합계만** 터미널에 출력해요. `-- --json` 으로 JSON. Claude Code에서는 `/usage` 스킬로 요약할 수 있어요.
+> 📊 **운영자 사용 현황**: `npm run usage` (로컬 전용, wrangler 로그인 필요). 운영 KV를 읽기만 해서 워크스페이스별 7일·30일 사용자, 주별 신규·유지율, 일별 사용자, 익스텐션·웹앱·기능 사용 비율 같은 **합계만** 터미널에 출력해요. `-- --json` 으로 JSON. Claude Code에서는 `/usage` 스킬로 요약할 수 있어요.
 
 ## 🌳 집중의 나무 (Focus Tree)
 

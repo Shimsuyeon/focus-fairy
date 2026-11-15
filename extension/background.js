@@ -9,9 +9,8 @@
 import {
 	api,
 	getAccounts,
-	saveAccount,
-	setActiveAccount,
 	setAccountState,
+	connectWithCode,
 	getChannelChoice,
 	toStartChannelId,
 	focusedMs,
@@ -100,38 +99,6 @@ chrome.commands.onCommand.addListener(async (command) => {
 });
 
 // ---------- 연결 링크 ----------
-
-/** 연결 페이지가 보낸 코드를 그 페이지의 서버에서 토큰으로 바꿔 계정을 추가하고 활성화 */
-async function connectWithCode(code, serverUrl) {
-	let res;
-	try {
-		res = await fetch(`${serverUrl}/api/connect`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ code }),
-		});
-	} catch {
-		return { ok: false, message: '서버에 연결할 수 없어요.' };
-	}
-	const data = await res.json().catch(() => ({}));
-	if (!res.ok || !data.token) {
-		return { ok: false, message: data.message || '연결하지 못했어요. Slack에서 다시 시도해주세요.' };
-	}
-
-	const account = {
-		id: crypto.randomUUID(),
-		serverUrl,
-		token: data.token,
-		teamId: data.workspace?.id,
-		teamName: data.workspace?.name,
-		userId: data.user?.id,
-		userName: data.user?.name,
-	};
-	await saveAccount(account);
-	await setAccountState(account.id, { session: data.session, authError: false });
-	await setActiveAccount(account.id);
-	return { ok: true, teamName: account.teamName };
-}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (message?.type !== 'connect' || sender.id !== chrome.runtime.id || !sender.url) return;

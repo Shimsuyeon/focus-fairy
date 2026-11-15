@@ -6,6 +6,15 @@
 	"observability": {
 		"enabled": true
 	},
+	// 모바일 웹앱 /app — 익스텐션 팝업 코드로 dist/web 을 만든다 (scripts/build-web.mjs). 그 외 경로는 Worker로
+	"build": {
+		"command": "node scripts/build-web.mjs"
+	},
+	"assets": {
+		"directory": "./dist/web",
+		"html_handling": "auto-trailing-slash",
+		"not_found_handling": "none"
+	},
 	"kv_namespaces": [
 		{
 			"binding": "STUDY_KV",

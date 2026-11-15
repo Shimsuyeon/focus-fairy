@@ -22,15 +22,18 @@
 			<!-- 토큰 설정 -->
 			<section id="view-setup" class="setup" hidden>
 				<h2 id="setup-title">워크스페이스 연결</h2>
-				<p class="hint">
+				<p class="hint" data-for="extension">
 					Slack 집중요정 <b>홈 탭 → 크롬 익스텐션 연결</b> (또는 <code>/settings extension</code>)에서 <b>🧩 익스텐션에 연결하기</b>를 누르면 자동으로 연결돼요.
 				</p>
-				<p class="hint">토큰을 직접 붙여넣으려면 같은 창의 <b>토큰 직접 복사하기</b>를 눌러 아래에 넣어주세요.</p>
+				<p class="hint" data-for="extension">토큰을 직접 붙여넣으려면 같은 창의 <b>토큰 직접 복사하기</b>를 눌러 아래에 넣어주세요.</p>
+				<p class="hint" data-for="app">
+					Slack 집중요정 <b>홈 탭 → 폰 웹앱 연결</b> (또는 <code>/settings app</code>)에 나오는 <b>연결 코드</b>를 입력해주세요.
+				</p>
 				<label>
-					토큰
+					<span data-for="extension">토큰</span><span data-for="app">연결 코드</span>
 					<input id="token" type="password" placeholder="ff_..." autocomplete="off" spellcheck="false" />
 				</label>
-				<details>
+				<details data-for="extension">
 					<summary>서버 주소</summary>
 					<input id="server-url" type="url" spellcheck="false" />
 				</details>
@@ -121,7 +124,7 @@
 			</header>
 
 			<p id="stats-error" class="error" hidden></p>
-			<p id="no-account" class="card muted" hidden>왼쪽에서 워크스페이스를 먼저 연결해주세요.</p>
+			<p id="no-account" class="card muted" hidden><span data-for="extension">왼쪽</span><span data-for="app">위</span>에서 워크스페이스를 먼저 연결해주세요.</p>
 
 			<div id="content" hidden>
 				<section class="card grove">

@@ -4,7 +4,7 @@
 
 /** 집중 세션 기록 */
 /** 세션을 시작·종료한 곳 — 없으면(이전 기록) slack */
-export type SessionSource = 'slack' | 'extension';
+export type SessionSource = 'slack' | 'extension' | 'app';
 
 export interface Session {
 	userId: string;
@@ -17,7 +17,7 @@ export interface Session {
 	pauseDuration?: number;
 	source?: SessionSource;
 	endSource?: SessionSource;
-	/** 채널에 시작 메시지를 올리지 않고 기록만 남긴 세션 (익스텐션 '기록만') */
+	/** 채널에 시작 메시지를 올리지 않고 기록만 남긴 세션 (익스텐션·웹앱 '기록만') */
 	recordOnly?: true;
 }
 

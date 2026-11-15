@@ -64,7 +64,7 @@ describe('사용 현황 집계 (npm run usage)', () => {
 		expect(r.teams[0]).toMatchObject({ teamId: 'T_A', name: '모각코 스터디' });
 
 		expect(r.daily).toHaveLength(30);
-		expect(r.daily.at(-1)).toEqual({ date: '2026-10-24', users: 1, sessions: 1, focusMs: 2 * H, extensionSessions: 0 });
+		expect(r.daily.at(-1)).toEqual({ date: '2026-10-24', users: 1, sessions: 1, focusMs: 2 * H, extensionSessions: 0, appSessions: 0 });
 		expect(r.daily.find((d) => d.date === '2026-10-20')).toMatchObject({ users: 2, sessions: 2, extensionSessions: 2 });
 
 		expect(r.weekly).toHaveLength(8);
@@ -80,6 +80,8 @@ describe('사용 현황 집계 (npm run usage)', () => {
 			withPause: 1,
 			startedFromExtension: 2,
 			endedFromExtension: 1,
+			startedFromApp: 0,
+			endedFromApp: 0,
 			recordOnly: 1,
 			usersWithGoal: 1,
 			usersWithStatusSync: 1,

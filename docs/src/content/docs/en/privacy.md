@@ -1,13 +1,13 @@
 ---
 title: Privacy policy
-description: What the focus-fairy Slack bot and Chrome extension store and how they use it.
+description: What the focus-fairy Slack bot, Chrome extension, and mobile web app store and how they use it.
 sidebar:
   order: 90
 ---
 
-focus-fairy handles only the information it needs to record and show your focus time. This policy covers both the **focus-fairy Slack bot** and the **focus-fairy Chrome extension**.
+focus-fairy handles only the information it needs to record and show your focus time. This policy covers the **focus-fairy Slack bot**, the **focus-fairy Chrome extension**, and the **focus-fairy mobile web app**.
 
-Effective date: October 22, 2026 (updated October 24, 2026: reading Slack status, aggregate statistics for operations)
+Effective date: October 22, 2026 (updated October 24, 2026: reading Slack status, aggregate statistics for operations; updated November 15, 2026: mobile web app)
 
 ## Information we collect
 
@@ -19,9 +19,10 @@ Effective date: October 22, 2026 (updated October 24, 2026: reading Slack status
 | Workspace name · user display name | Show names in the popup and reports (display names are cached for one day) |
 | Focus session records (start/end time, focus time, break time, plan, category) | Stats, reports, rankings |
 | Current session state | Start, pause and end sessions |
-| IDs and names of channels where you used `/start` (last 10) | Choose a channel for messages from the extension |
+| IDs and names of channels where you used `/start` (last 10) | Choose a channel for messages from the extension or web app |
 | Monthly goal | This month's tree and goal hints |
-| **Hash** of the extension connection token | Verify extension requests (the token itself is never stored) |
+| **Hash** of the extension / web app connection token | Verify that requests are yours (the token itself is never stored) |
+| Where a session was started and ended (Slack / extension / web app) | Aggregate feature usage ratios |
 | Workspace settings (auto-record threshold, default time zone, etc.) | Session handling |
 | Bot token for the installed workspace | Sending Slack messages, looking up user names |
 | User token, if you connect [Slack status sync](/en/settings/sync/) | Update your status (only users who connect it) |
@@ -34,6 +35,10 @@ The extension stores the following only in `chrome.storage.local` (inside this b
 - Server address, connection token, and workspace/user names of connected workspaces
 - Channel choice per workspace and the last session state (for the toolbar badge)
 
+### Stored in your browser by the mobile web app
+
+The web app (`/app`) stores the same information as the extension (connection token, workspace and user names, channel choice, last session state), plus whether you dismissed the add-to-home-screen tip, only in that browser's (or home screen app's) `localStorage`. The web app makes requests only to the focus-fairy server.
+
 ## Information we don't collect
 
 - Websites you visit, browsing history, or tab contents
@@ -45,8 +50,8 @@ The extension's content script runs **only on the focus-fairy connection page** 
 
 ## How we use it
 
-- Recording focus time and showing stats (`/today`, `/weekly`, `/report`, App Home, extension popup)
-- Visible to teammates in the same workspace: focus state, category, focus time, rankings. **Plans are not shown in the extension's team list** (they are included in start/end messages posted to channels)
+- Recording focus time and showing stats (`/today`, `/weekly`, `/report`, App Home, extension popup, web app)
+- Visible to teammates in the same workspace: focus state, category, focus time, rankings. **Plans are not shown in the team list of the extension or web app** (they are included in start/end messages posted to channels)
 - Operating and improving the service: the operator looks only at **aggregate statistics**, such as users per workspace, daily and weekly usage trends, and how often each feature is used. Plans and individual records are not viewed.
 - We don't sell information or use it for ads, and we don't share it with third parties other than the processors below
 
@@ -60,13 +65,13 @@ The extension's content script runs **only on the focus-fairy connection page** 
 ## Retention and deletion
 
 - Focus records are kept for stats unless you ask us to delete them.
-- Remove an extension connection from the browser with ⚙︎ → **연결 해제** (Disconnect) in the popup. Reconnecting from Slack or getting a new token immediately invalidates the old one.
-- Uninstalling the extension deletes the information stored in your browser.
+- Remove an extension or web app connection from the browser with ⚙︎ → **연결 해제** (Disconnect). Reconnecting from Slack or getting a new token immediately invalidates the old token for that client (extension or web app).
+- Uninstalling the extension deletes the information stored in your browser. For the web app, remove it from your home screen or clear the site data in your browser.
 - To delete your records, open a [GitHub issue](https://github.com/Shimsuyeon/focus-fairy/issues).
 
 ## Security
 
-- The server and the extension communicate over HTTPS. The extension installed from the Chrome Web Store can only access the focus-fairy server.
+- The server, the extension, and the web app communicate over HTTPS. The web app loads no external scripts and may only call the focus-fairy server (Content Security Policy). The extension installed from the Chrome Web Store can only access the focus-fairy server.
 - Connection tokens and one-time connection codes are stored only as SHA-256 hashes, and connection codes expire after 10 minutes.
 
 ## Contact

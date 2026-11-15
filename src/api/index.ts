@@ -1,6 +1,6 @@
 /**
- * 익스텐션용 REST API — /api/*
- * Slack 밖(크롬 익스텐션 등)에서 세션을 시작/일시정지/재개/종료한다.
+ * 익스텐션·웹앱용 REST API — /api/*
+ * Slack 밖(크롬 익스텐션, 모바일 웹앱 /app)에서 세션을 시작/일시정지/재개/종료한다.
  * 인증은 개인 API 토큰(Bearer).
  * 공개 메시지 채널은 사용자가 /start 한 적 있는 채널 중에서만 고를 수 있다 (봇이 게시 가능한 채널 보장 + 임의 채널 게시 방지).
  */
@@ -124,7 +124,7 @@ async function getSession(request: Request, env: Env, { teamId, userId, teamName
 	});
 }
 
-async function startSession(request: Request, env: Env, { teamId, userId }: ApiIdentity): Promise<Response> {
+async function startSession(request: Request, env: Env, { teamId, userId, client = 'extension' }: ApiIdentity): Promise<Response> {
 	const current = await getUserSessionState(env, teamId, userId);
 	if (current.state !== 'idle') {
 		return apiError(request, 409, 'already_started', current.state === 'paused' ? '일시정지 중인 세션이 있어요.' : '이미 집중 중이에요!');
@@ -139,7 +139,7 @@ async function startSession(request: Request, env: Env, { teamId, userId }: ApiI
 	}
 
 	const now = Date.now();
-	await beginSession(env, teamId, userId, now, { channelId, label, tag, source: 'extension' });
+	await beginSession(env, teamId, userId, now, { channelId, label, tag, source: client });
 
 	if (channelId) {
 		const tzInfo = await getUserTimezoneInfo(env, teamId, userId);
@@ -202,7 +202,7 @@ async function resumeSession(request: Request, env: Env, { teamId, userId }: Api
  * body.duration(ms)을 주면 그 시간으로 기록, 없으면 자동 계산.
  * 자동 계산 시간이 워크스페이스 임계값을 넘으면 기록하지 않고 needsConfirm을 돌려준다 → body.confirm: true 로 재요청.
  */
-async function endSession(request: Request, env: Env, { teamId, userId }: ApiIdentity): Promise<Response> {
+async function endSession(request: Request, env: Env, { teamId, userId, client = 'extension' }: ApiIdentity): Promise<Response> {
 	const checkIn = await env.STUDY_KV.get(`${teamId}:checkin:${userId}`);
 	if (!checkIn) {
 		return apiError(request, 409, 'not_started', '진행 중인 세션이 없어요.');
@@ -231,7 +231,7 @@ async function endSession(request: Request, env: Env, { teamId, userId }: ApiIde
 	}
 
 	const channelId = checkin.msgChannelId || '';
-	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin, tzInfo, lunchDeducted, 'extension');
+	const durationLabel = await completeEndSession(env, teamId, userId, channelId, duration, checkin, tzInfo, lunchDeducted, client);
 	return json(request, { ok: true, duration, durationLabel, session: { state: 'idle' } });
 }
 

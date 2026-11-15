@@ -90,7 +90,7 @@ export async function completeEndSession(
 	if (totalPauseDuration > 0) session.pauseDuration = totalPauseDuration;
 	session.source = source || 'slack';
 	session.endSource = endSource;
-	if (source === 'extension' && !msgChannelId) session.recordOnly = true;
+	if (source && source !== 'slack' && !msgChannelId) session.recordOnly = true;
 	sessions.push(session);
 	await env.STUDY_KV.put(sessionsKey, JSON.stringify(sessions));
 

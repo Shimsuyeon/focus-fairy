@@ -32,6 +32,10 @@ Slack 사이드바에서 **focus-fairy(집중요정)** 를 클릭한 뒤 **홈**
 
 Slack에 들어가지 않고 브라우저 툴바에서 세션을 켜고 끄고 싶다면 [크롬 웹스토어](https://chromewebstore.google.com/detail/hoaigcnbolebecjdidhnhkjdmohhiclp)에서 집중요정 익스텐션을 설치해보세요. 홈 탭의 **크롬 익스텐션 연결** 버튼이나 `/settings extension` 에서 **익스텐션에 연결하기**를 누르면 자동으로 연결돼요. 자세한 내용은 [크롬 익스텐션 가이드](/extension/)를 참고하세요.
 
+## 6. 폰 홈 화면에 추가하기 (선택)
+
+폰에서는 **집중요정 웹앱**을 홈 화면에 추가하면 앱처럼 쓸 수 있어요. 홈 탭의 **폰 웹앱 연결** 버튼이나 `/settings app` 에서 링크와 연결 코드를 받으세요. 자세한 내용은 [모바일 웹앱 가이드](/app/)를 참고하세요.
+
 ## 다음 단계
 
 - [명령어 전체 보기](/commands/start/)

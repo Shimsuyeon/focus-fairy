@@ -14,6 +14,7 @@ export const HOME_ACTION = {
 	sessionResume: 'home_session_resume',
 	sessionEnd: 'home_session_end',
 	extension: 'home_extension',
+	app: 'home_app',
 } as const;
 
 interface BuildHomeViewArgs {
@@ -77,6 +78,11 @@ export function buildHomeView({ userName, session, today, week, monthTotalMs, to
 						type: 'button',
 						text: { type: 'plain_text', text: '크롬 익스텐션 연결', emoji: true },
 						action_id: HOME_ACTION.extension,
+					},
+					{
+						type: 'button',
+						text: { type: 'plain_text', text: '폰 웹앱 연결', emoji: true },
+						action_id: HOME_ACTION.app,
 					},
 					{
 						type: 'button',
