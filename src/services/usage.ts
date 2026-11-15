@@ -42,6 +42,7 @@ export interface DayUsage {
 	sessions: number;
 	focusMs: number;
 	extensionSessions: number;
+	appSessions: number;
 }
 
 export interface WeekUsage {
@@ -70,6 +71,8 @@ export interface UsageReport {
 		withPause: number;
 		startedFromExtension: number;
 		endedFromExtension: number;
+		startedFromApp: number;
+		endedFromApp: number;
 		recordOnly: number;
 		usersWithGoal: number;
 		usersWithStatusSync: number;
@@ -162,12 +165,12 @@ export async function buildUsageReport(
 	);
 
 	// 사용자는 팀:사용자 로 구분하고, 결과에는 개수만 남긴다
-	const daily = new Map<string, { users: Set<string>; sessions: number; focusMs: number; ext: number }>();
+	const daily = new Map<string, { users: Set<string>; sessions: number; focusMs: number; ext: number; app: number }>();
 	const weekly = new Map<string, Set<string>>();
 	const team = new Map<string, { users30: Set<string>; users7: Set<string>; sessions30: number; focusMs30: number; days: Set<string> }>();
 	const users30 = new Set<string>();
 	const users7 = new Set<string>();
-	const features = { sessions: 0, withTag: 0, withPlan: 0, withPause: 0, startedFromExtension: 0, endedFromExtension: 0, recordOnly: 0 };
+	const features = { sessions: 0, withTag: 0, withPlan: 0, withPause: 0, startedFromExtension: 0, endedFromExtension: 0, startedFromApp: 0, endedFromApp: 0, recordOnly: 0 };
 
 	for (const { teamId, date, sessions } of loaded) {
 		for (const s of sessions) {
@@ -180,11 +183,12 @@ export async function buildUsageReport(
 			}
 			if (date < since30) continue;
 
-			const day = daily.get(date) || { users: new Set<string>(), sessions: 0, focusMs: 0, ext: 0 };
+			const day = daily.get(date) || { users: new Set<string>(), sessions: 0, focusMs: 0, ext: 0, app: 0 };
 			day.users.add(who);
 			day.sessions++;
 			day.focusMs += s.duration || 0;
 			if (s.source === 'extension') day.ext++;
+			if (s.source === 'app') day.app++;
 			daily.set(date, day);
 
 			const t = team.get(teamId) || { users30: new Set<string>(), users7: new Set<string>(), sessions30: 0, focusMs30: 0, days: new Set<string>() };
@@ -205,6 +209,8 @@ export async function buildUsageReport(
 			if (s.pauseDuration) features.withPause++;
 			if (s.source === 'extension') features.startedFromExtension++;
 			if (s.endSource === 'extension') features.endedFromExtension++;
+			if (s.source === 'app') features.startedFromApp++;
+			if (s.endSource === 'app') features.endedFromApp++;
 			if (s.recordOnly) features.recordOnly++;
 		}
 	}
@@ -233,7 +239,7 @@ export async function buildUsageReport(
 	for (let i = 0; i < USAGE_DAYS; i++) {
 		const date = addDays(since30, i);
 		const d = daily.get(date);
-		dailyRows.push({ date, users: d?.users.size || 0, sessions: d?.sessions || 0, focusMs: d?.focusMs || 0, extensionSessions: d?.ext || 0 });
+		dailyRows.push({ date, users: d?.users.size || 0, sessions: d?.sessions || 0, focusMs: d?.focusMs || 0, extensionSessions: d?.ext || 0, appSessions: d?.app || 0 });
 	}
 
 	const weeklyRows: WeekUsage[] = [];
@@ -357,7 +363,10 @@ export function renderUsageText(r: UsageReport): string {
 	out.push('', `■ 일별 사용자 (최근 ${r.days}일)`);
 	out.push(
 		r.daily
-			.map((d) => `${pad(md(d.date), 5, true)} ${pad(String(d.users), 3, true)}명 ${bar(d.users, maxDay)}${d.extensionSessions ? `  (익스텐션 ${d.extensionSessions})` : ''}`)
+			.map((d) => {
+				const from = [d.extensionSessions && `익스텐션 ${d.extensionSessions}`, d.appSessions && `웹앱 ${d.appSessions}`].filter(Boolean).join(' · ');
+				return `${pad(md(d.date), 5, true)} ${pad(String(d.users), 3, true)}명 ${bar(d.users, maxDay)}${from ? `  (${from})` : ''}`;
+			})
 			.join('\n')
 	);
 
@@ -368,6 +377,8 @@ export function renderUsageText(r: UsageReport): string {
 			[
 				['익스텐션에서 시작', pctText(f.startedFromExtension, f.sessions), String(f.startedFromExtension)],
 				['익스텐션에서 종료', pctText(f.endedFromExtension, f.sessions), String(f.endedFromExtension)],
+				['웹앱에서 시작', pctText(f.startedFromApp, f.sessions), String(f.startedFromApp)],
+				['웹앱에서 종료', pctText(f.endedFromApp, f.sessions), String(f.endedFromApp)],
 				['기록만 (채널 메시지 없음)', pctText(f.recordOnly, f.sessions), String(f.recordOnly)],
 				['카테고리 지정', pctText(f.withTag, f.sessions), String(f.withTag)],
 				['계획 작성', pctText(f.withPlan, f.sessions), String(f.withPlan)],
@@ -377,6 +388,6 @@ export function renderUsageText(r: UsageReport): string {
 	);
 	out.push(`월 목표 설정 ${f.usersWithGoal}명 · Slack status 동기화 연결 ${f.usersWithStatusSync}명`);
 	if (t.staleCheckins) out.push(`⚠️ 24시간 넘게 켜져 있는 세션 ${t.staleCheckins}개 (끄는 걸 잊은 것으로 보고 '지금 집중 중'에서 뺐어요)`);
-	out.push('', '※ 합계만 표시해요 (사용자·계획 내용 없음). 출처(Slack/익스텐션)는 이 기능 배포 이후 세션부터 기록돼요.');
+	out.push('', '※ 합계만 표시해요 (사용자·계획 내용 없음). 출처(Slack/익스텐션/웹앱)는 이 기능 배포 이후 세션부터 기록돼요.');
 	return out.join('\n');
 }

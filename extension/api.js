@@ -1,8 +1,9 @@
 /**
- * 집중요정 API 클라이언트 + 시간 표시 유틸 (팝업 / background 공용)
+ * 집중요정 API 클라이언트 + 시간 표시 유틸 (팝업 / background 공용, 모바일 웹앱 /app 에서도 그대로 쓴다)
  */
 
-export const DEFAULT_SERVER = 'https://focus-fairy.suyeonshim.workers.dev';
+/** 웹앱은 자기를 서빙한 서버를 쓴다 (web/app/shim.js) */
+export const DEFAULT_SERVER = globalThis.FF_DEFAULT_SERVER || 'https://focus-fairy.suyeonshim.workers.dev';
 
 export class ApiError extends Error {
 	constructor(status, code, message) {
@@ -89,6 +90,38 @@ export async function removeAccount(id) {
 
 export function normalizeServerUrl(url) {
 	return (url || DEFAULT_SERVER).trim().replace(/\/+$/, '');
+}
+
+/** 연결 코드(Slack에서 받은 링크·코드)를 서버에서 토큰으로 바꿔 계정을 추가하고 활성화 */
+export async function connectWithCode(code, serverUrl) {
+	let res;
+	try {
+		res = await fetch(`${serverUrl}/api/connect`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ code }),
+		});
+	} catch {
+		return { ok: false, message: '서버에 연결할 수 없어요.' };
+	}
+	const data = await res.json().catch(() => ({}));
+	if (!res.ok || !data.token) {
+		return { ok: false, message: data.message || '연결하지 못했어요. Slack에서 다시 시도해주세요.' };
+	}
+
+	const account = {
+		id: crypto.randomUUID(),
+		serverUrl,
+		token: data.token,
+		teamId: data.workspace?.id,
+		teamName: data.workspace?.name,
+		userId: data.user?.id,
+		userName: data.user?.name,
+	};
+	await saveAccount(account);
+	await setAccountState(account.id, { session: data.session, authError: false });
+	await setActiveAccount(account.id);
+	return { ok: true, teamName: account.teamName };
 }
 
 /** 계정별 캐시(세션, 인증 오류) 갱신 */

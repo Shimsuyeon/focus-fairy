@@ -97,7 +97,8 @@ export async function handleHelp(
 							'\n' +
 							'*`/settings`* — 워크스페이스 설정 (모달)\n' +
 							'  `/settings sync` — Slack status 자동 동기화 연결/해제\n' +
-							'  `/settings extension` — 크롬 익스텐션 연결 토큰 발급',
+							'  `/settings extension` — 크롬 익스텐션 연결 토큰 발급\n' +
+							'  `/settings app` — 폰 웹앱(홈 화면 앱) 연결',
 					},
 				},
 			],

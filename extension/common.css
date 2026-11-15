@@ -25,6 +25,12 @@
 	color-scheme: light;
 }
 
+/* 익스텐션 / 웹앱(/app)에서만 보이는 문구 — 웹앱은 shim.js 가 html.app 을 붙인다 */
+html:not(.app) [data-for='app'],
+html.app [data-for='extension'] {
+	display: none !important;
+}
+
 @media (prefers-color-scheme: dark) {
 	:root {
 		--bg: #15141b;

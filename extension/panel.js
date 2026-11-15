@@ -15,6 +15,7 @@ import {
 	removeAccount,
 	normalizeServerUrl,
 	setAccountState,
+	connectWithCode,
 	getChannelChoice,
 	setChannelChoice,
 	toStartChannelId,
@@ -31,6 +32,8 @@ const STATE_LABEL = {
 };
 
 const ADD_WORKSPACE = '__add__';
+/** 모바일 웹앱(/app)에서 실행 중 — 토큰 대신 8자리 연결 코드를 입력받는다 */
+const IS_APP = document.documentElement.classList.contains('app');
 const REFRESH_MS = 60 * 1000;
 
 let account = null; // 활성 계정
@@ -126,7 +129,8 @@ async function showSetup(mode) {
 	$('setup-title').textContent = editing ? `${account.teamName || '워크스페이스'} 설정` : '워크스페이스 연결';
 	$('server-url').value = editing ? account.serverUrl : DEFAULT_SERVER;
 	$('token').value = '';
-	$('token').placeholder = editing ? '새 토큰 붙여넣기 (비우면 유지)' : 'ff_...';
+	$('token').type = IS_APP ? 'text' : 'password';
+	$('token').placeholder = IS_APP ? 'ABCD-EFGH' : editing ? '새 토큰 붙여넣기 (비우면 유지)' : 'ff_...';
 	$('save-config').textContent = editing ? '저장' : '연결하기';
 	$('cancel-setup').hidden = accounts.length === 0;
 	$('disconnect').hidden = !editing;
@@ -147,12 +151,23 @@ $('cancel-setup').addEventListener('click', () => loadSession());
 $('save-config').addEventListener('click', (e) =>
 	run(e.currentTarget, async () => {
 		const editing = setupMode === 'edit' && account;
-		const token = $('token').value.trim() || (editing ? account.token : '');
-		if (!token) throw new Error('토큰을 입력해주세요.');
+		const input = $('token').value.trim();
+		const serverUrl = normalizeServerUrl($('server-url').value);
+
+		// ff_ 로 시작하지 않으면 Slack에서 받은 연결 코드
+		if (input && !input.startsWith('ff_')) {
+			const result = await connectWithCode(input, serverUrl);
+			if (!result.ok) throw new Error(result.message);
+			await loadSession();
+			return;
+		}
+
+		const token = input || (editing ? account.token : '');
+		if (!token) throw new Error('토큰이나 연결 코드를 입력해주세요.');
 
 		const candidate = {
 			...(editing ? account : { id: crypto.randomUUID() }),
-			serverUrl: normalizeServerUrl($('server-url').value),
+			serverUrl,
 			token,
 		};
 
@@ -528,6 +543,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
 setInterval(() => {
 	if (!$('view-session').hidden) refresh();
 }, REFRESH_MS);
+
+// 웹앱: 폰에서 다시 앱으로 돌아오면 바로 갱신 (Slack에서 바꾼 상태 반영)
+document.addEventListener('visibilitychange', () => {
+	if (document.visibilityState === 'visible' && !$('view-session').hidden) refresh();
+});
 setInterval(renderTeam, 30 * 1000);
 
 loadSession();

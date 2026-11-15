@@ -126,7 +126,7 @@ async function handleBlockActions(payload: SlackInteractionPayload, env: Env, or
 		return handleSessionPanelAction(payload, env);
 	}
 
-	if (actionId === HOME_ACTION.help || actionId === HOME_ACTION.settings || actionId === HOME_ACTION.settingsSync || actionId === HOME_ACTION.extension) {
+	if (actionId === HOME_ACTION.help || actionId === HOME_ACTION.settings || actionId === HOME_ACTION.settingsSync || actionId === HOME_ACTION.extension || actionId === HOME_ACTION.app) {
 		return handleHomeQuickAction(payload, env, origin);
 	}
 
@@ -160,6 +160,10 @@ async function handleHomeQuickAction(payload: SlackInteractionPayload, env: Env,
 
 	if (actionId === HOME_ACTION.extension) {
 		return handleSettings(env, user.team_id, user.id, trigger_id, 'extension', origin);
+	}
+
+	if (actionId === HOME_ACTION.app) {
+		return handleSettings(env, user.team_id, user.id, trigger_id, 'app', origin);
 	}
 
 	if (actionId === HOME_ACTION.settingsSync) {

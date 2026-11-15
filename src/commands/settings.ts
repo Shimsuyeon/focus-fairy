@@ -5,7 +5,7 @@
 
 import { replyEphemeral, getBotToken, getUserTimezone, getUserToken, getTeamName, getUserName } from '../utils/slack';
 import { MAX_AUTO_DURATION } from '../constants/messages';
-import { issueApiToken, createConnectCode } from '../api/auth';
+import { issueApiToken, createConnectCode, formatShortCode } from '../api/auth';
 import { canReadUserStatus } from '../services/slackStatus';
 
 export type TimezoneLabelMode = 'auto' | 'always' | 'never';
@@ -118,6 +118,10 @@ export async function handleSettings(
 
 	if (text === 'extension') {
 		return handleExtensionSettings(env, teamId, userId, triggerId, baseUrl);
+	}
+
+	if (text === 'app') {
+		return handleAppSettings(env, teamId, userId, triggerId, baseUrl);
 	}
 
 	if (!triggerId) {
@@ -517,5 +521,84 @@ export async function handleExtensionShowToken(
 	if (!data.ok) {
 		console.error('Failed to update extension token modal:', data.error);
 	}
+	return new Response('', { status: 200 });
+}
+
+const APP_NOTES =
+	'• *아이폰*: 링크를 사파리에서 열고 *공유 → 홈 화면에 추가* 한 뒤, 홈 화면의 집중요정을 열어 위 코드를 입력하세요. (홈 화면 앱은 사파리와 저장 공간이 따로라 앱 안에서 연결해야 해요)\n' +
+	'• *안드로이드*: 링크를 크롬에서 열면 바로 연결돼요. 화면 위 안내대로 홈 화면에 추가하세요.\n' +
+	'• 웹앱과 크롬 익스텐션은 따로 연결돼요. 웹앱을 다시 연결해도 익스텐션은 그대로예요.\n' +
+	'• 여러 워크스페이스에서 쓴다면 각 워크스페이스에서 연결하세요. 앱 위쪽 드롭다운으로 전환할 수 있어요.';
+
+/**
+ * 모바일 웹앱 연결 모달 (/settings app, App Home 버튼 공용).
+ * '웹앱 열기' 링크(/app/#code=...)와 홈 화면 앱에 직접 입력할 8자리 코드를 같이 보여준다 — 같은 일회용 코드.
+ */
+export async function handleAppSettings(env: Env, teamId: string, userId: string, triggerId: string, baseUrl?: string): Promise<Response> {
+	if (!triggerId) {
+		return replyEphemeral('모달을 열 수 없어요. 다시 시도해주세요!');
+	}
+	if (!baseUrl) {
+		return replyEphemeral('웹앱 주소를 알 수 없어요. 다시 시도해주세요!');
+	}
+
+	const botToken = await getBotToken(env, teamId);
+	if (!botToken) {
+		return replyEphemeral('봇 토큰을 찾을 수 없어요.');
+	}
+
+	const [teamName, userName] = await Promise.all([getTeamName(env, teamId), getUserName(env, teamId, userId)]);
+	const code = await createConnectCode(env, teamId, userId, { teamName, userName }, 'app');
+
+	const modal = {
+		trigger_id: triggerId,
+		view: {
+			type: 'modal',
+			callback_id: 'app_connect_modal',
+			title: { type: 'plain_text', text: '폰 웹앱 연결' },
+			close: { type: 'plain_text', text: '닫기' },
+			blocks: [
+				{
+					type: 'section',
+					text: {
+						type: 'mrkdwn',
+						text: `:fairy-wand: *${teamName}* 워크스페이스를 집중요정 웹앱에 연결해요.\n폰 홈 화면에 추가하면 앱처럼 집중을 시작·종료할 수 있어요.`,
+					},
+				},
+				{
+					type: 'actions',
+					elements: [
+						{
+							type: 'button',
+							action_id: 'app_connect_link',
+							style: 'primary',
+							text: { type: 'plain_text', text: '📱 웹앱 열기' },
+							url: `${baseUrl}/app/#code=${code}`,
+						},
+					],
+				},
+				{ type: 'section', text: { type: 'mrkdwn', text: `*연결 코드*  \`${formatShortCode(code)}\`` } },
+				{ type: 'context', elements: [{ type: 'mrkdwn', text: '링크와 코드는 같은 거예요. 10분 동안 한 번만 쓸 수 있어요.' }] },
+				{ type: 'divider' },
+				{ type: 'context', elements: [{ type: 'mrkdwn', text: APP_NOTES }] },
+			],
+		},
+	};
+
+	const res = await fetch('https://slack.com/api/views.open', {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${botToken}`,
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(modal),
+	});
+
+	const data = (await res.json()) as { ok: boolean; error?: string };
+	if (!data.ok) {
+		console.error('Failed to open app connect modal:', data.error);
+		return replyEphemeral('모달을 열 수 없어요. 다시 시도해주세요!');
+	}
+
 	return new Response('', { status: 200 });
 }
