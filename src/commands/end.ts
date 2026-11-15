@@ -2,7 +2,7 @@
  * /end 커맨드 핸들러
  */
 
-import type { Session } from '../types';
+import type { Session, SessionSource } from '../types';
 import { reply, replyEphemeral, postMessage, updateMessage, getUserName } from '../utils/slack';
 import { formatTime, formatDuration, parseDuration, calcLunchDeduction } from '../utils/format';
 import { getDateKey, isCurrentWeek, isAprilFools } from '../utils/date';
@@ -19,6 +19,7 @@ interface CheckinData {
 	tag?: string;
 	messageTs?: string;
 	msgChannelId?: string;
+	source?: SessionSource;
 	totalPauseDuration: number;
 	pausePeriods: Array<{ start: number; end: number }>;
 }
@@ -30,6 +31,7 @@ function parseCheckinData(checkIn: string, now: number): CheckinData {
 	let tag: string | undefined;
 	let messageTs: string | undefined;
 	let msgChannelId: string | undefined;
+	let source: SessionSource | undefined;
 	let totalPauseDuration = 0;
 	let pausePeriods: Array<{ start: number; end: number }> = [];
 
@@ -42,6 +44,7 @@ function parseCheckinData(checkIn: string, now: number): CheckinData {
 			tag = parsed.tag;
 			messageTs = parsed.messageTs;
 			msgChannelId = parsed.channelId;
+			source = parsed.source;
 			totalPauseDuration = parsed.totalPauseDuration || 0;
 			if (Array.isArray(parsed.pausePeriods)) {
 				pausePeriods = parsed.pausePeriods;
@@ -57,7 +60,7 @@ function parseCheckinData(checkIn: string, now: number): CheckinData {
 		startTime = parseInt(checkIn);
 	}
 
-	return { startTime, label, checked, tag, messageTs, msgChannelId, totalPauseDuration, pausePeriods };
+	return { startTime, label, checked, tag, messageTs, msgChannelId, source, totalPauseDuration, pausePeriods };
 }
 
 /** 세션 종료 핵심 로직 — /end 커맨드와 "그대로 기록하기" 버튼 공용 */
@@ -69,10 +72,11 @@ export async function completeEndSession(
 	duration: number,
 	checkin: CheckinData,
 	tzInfo?: { timezone: string; showLabel: boolean },
-	lunchDeducted?: number
+	lunchDeducted?: number,
+	endSource: SessionSource = 'slack'
 ): Promise<string> {
 	const now = Date.now();
-	const { startTime, label, checked, tag, messageTs, msgChannelId, totalPauseDuration } = checkin;
+	const { startTime, label, checked, tag, messageTs, msgChannelId, source, totalPauseDuration } = checkin;
 	const tz = tzInfo?.timezone;
 	const showLabel = tzInfo?.showLabel;
 
@@ -84,6 +88,9 @@ export async function completeEndSession(
 	if (checked) session.checked = checked;
 	if (tag) session.tag = tag;
 	if (totalPauseDuration > 0) session.pauseDuration = totalPauseDuration;
+	session.source = source || 'slack';
+	session.endSource = endSource;
+	if (source === 'extension' && !msgChannelId) session.recordOnly = true;
 	sessions.push(session);
 	await env.STUDY_KV.put(sessionsKey, JSON.stringify(sessions));
 

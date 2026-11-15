@@ -7,7 +7,7 @@ sidebar:
 
 focus-fairy handles only the information it needs to record and show your focus time. This policy covers both the **focus-fairy Slack bot** and the **focus-fairy Chrome extension**.
 
-Effective date: October 22, 2026 (updated October 24, 2026: reading Slack status)
+Effective date: October 22, 2026 (updated October 24, 2026: reading Slack status, aggregate statistics for operations)
 
 ## Information we collect
 
@@ -47,6 +47,7 @@ The extension's content script runs **only on the focus-fairy connection page** 
 
 - Recording focus time and showing stats (`/today`, `/weekly`, `/report`, App Home, extension popup)
 - Visible to teammates in the same workspace: focus state, category, focus time, rankings. **Plans are not shown in the extension's team list** (they are included in start/end messages posted to channels)
+- Operating and improving the service: the operator looks only at **aggregate statistics**, such as users per workspace, daily and weekly usage trends, and how often each feature is used. Plans and individual records are not viewed.
 - We don't sell information or use it for ads, and we don't share it with third parties other than the processors below
 
 ## Processors

@@ -2,7 +2,7 @@
  * 세션 관련 비즈니스 로직
  */
 
-import type { Session } from '../types';
+import type { Session, SessionSource } from '../types';
 import { formatDuration } from '../utils/format';
 import { getUserNames } from '../utils/slack';
 import { applyStartStatus } from './slackStatus';
@@ -73,9 +73,9 @@ export async function beginSession(
 	teamId: string,
 	userId: string,
 	now: number,
-	{ channelId, label, tag }: { channelId?: string; label?: string; tag?: string }
+	{ channelId, label, tag, source = 'slack' }: { channelId?: string; label?: string; tag?: string; source?: SessionSource }
 ): Promise<void> {
-	const checkinData: Record<string, unknown> = { time: now };
+	const checkinData: Record<string, unknown> = { time: now, source };
 	if (label) checkinData.label = label;
 	if (tag) checkinData.tag = tag;
 	if (channelId) checkinData.channelId = channelId;

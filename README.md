@@ -53,6 +53,8 @@ npx wrangler deploy
 echo '{"TEAM_ID_1":"xoxb-...", "TEAM_ID_2":"xoxb-..."}' | npx wrangler secret put SLACK_BOT_TOKENS
 ```
 
+> 📊 **운영자 사용 현황**: `npm run usage` (로컬 전용, wrangler 로그인 필요). 운영 KV를 읽기만 해서 워크스페이스별 7일·30일 사용자, 주별 신규·유지율, 일별 사용자, 익스텐션·기능 사용 비율 같은 **합계만** 터미널에 출력해요. `-- --json` 으로 JSON. Claude Code에서는 `/usage` 스킬로 요약할 수 있어요.
+
 ## 🌳 집중의 나무 (Focus Tree)
 
 도메인 접속 시 팀의 집중 현황을 시각화한 랜딩 페이지
