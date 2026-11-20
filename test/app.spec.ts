@@ -111,6 +111,7 @@ describe('웹앱 정적 파일', () => {
 		const manifest = (await (await SELF.fetch('https://example.com/app/manifest.webmanifest')).json()) as Record<string, any>;
 		expect(manifest).toMatchObject({ start_url: '/app/', display: 'standalone' });
 		expect((await SELF.fetch('https://example.com/app/panel.js')).status).toBe(200);
+		expect((await SELF.fetch('https://example.com/app/pip.js')).status).toBe(200);
 	});
 
 	it('다른 경로는 그대로 Worker가 처리한다', async () => {

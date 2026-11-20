@@ -44,6 +44,22 @@ Everything in the [Chrome extension popup](/en/extension/) in a single column th
 
 When you reopen the app or come back from another app, changes made in Slack show up right away.
 
+## Keep it on top on your Mac
+
+You can also keep the web app open as a small window on your computer. It stays **on top of other app windows**, so you can see your timer and who's focusing right now while you work.
+
+1. In **Chrome** (or Edge) on your computer, open **📱 웹앱 열기** (Open web app) from `/settings app` to connect.
+2. Click the **📌** button at the top right. A small window pops up.
+3. Drag it where you want it. It opens in the same place next time.
+
+You can start, pause, and end from the small window, and the team list refreshes every 30 seconds. When someone starts focusing, their row sparkles briefly.
+
+:::note
+- The small window closes when you close the original web app window. Install the web app with Chrome **⋮ → Cast, save, and share → Install page as app** and minimize that window.
+- Works in Chrome and Edge only. The 📌 button doesn't show in Safari.
+- To type in the recorded time yourself when ending, use the original web app window.
+:::
+
 ## Using it with the extension
 
 The web app and the extension are **connected separately**. Reconnecting the web app keeps the extension connected, and vice versa. You can start a session on your phone and end it on your computer.

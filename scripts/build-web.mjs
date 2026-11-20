@@ -3,7 +3,7 @@
  *
  * 익스텐션 팝업 코드를 그대로 쓴다. dist/web/app/ 에
  * - extension/ 의 api.js · panel.js · stats.js · CSS · 아이콘
- * - web/app/ 의 shim.js (chrome.storage 대체) · app.js (진입점) · app.css (폰 한 열) · manifest · 홈 화면 아이콘
+ * - web/app/ 의 shim.js (chrome.storage 대체) · app.js (진입점) · app.css (폰 한 열) · pip.js/css (📌 띄우기) · manifest · 홈 화면 아이콘
  * - extension/popup.html 을 웹앱용으로 고친 index.html
  * 을 모은다. Worker가 dist/web 을 정적 파일로 서빙한다.
  */
