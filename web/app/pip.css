@@ -1,0 +1,248 @@
+/* 📌 띄우기 미니 창 (pip.js) — 본 창 토큰과 같은 색 */
+
+:root {
+	--bg: #f7f6fb;
+	--card: #ffffff;
+	--fg: #1f1d2b;
+	--muted: #6b6880;
+	--line: #e6e3f0;
+	--surface: #f1eff8;
+	--accent: #6d4aff;
+	--accent-fg: #ffffff;
+	--focusing: #22a06b;
+	--paused: #e8930c;
+	color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #15141b;
+		--card: #1e1d26;
+		--fg: #ecebf3;
+		--muted: #a19eb5;
+		--line: #2f2d3a;
+		--surface: #282733;
+		--accent: #9b85ff;
+		--accent-fg: #14131a;
+		--focusing: #3dd68c;
+		--paused: #f5a623;
+		color-scheme: dark;
+	}
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--fg);
+	font: 13px/1.45 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Segoe UI', sans-serif;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+p {
+	margin: 0;
+}
+
+.mini {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px;
+	min-height: 100vh;
+}
+
+header {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	color: var(--muted);
+	font-size: 12px;
+}
+
+.workspace {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.count {
+	flex: none;
+	color: var(--focusing);
+	font-weight: 600;
+}
+
+.me {
+	text-align: center;
+}
+
+.state {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--muted);
+	font-size: 12px;
+}
+
+.dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--muted);
+}
+
+[data-state='focusing'] .dot {
+	background: var(--focusing);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--focusing) 25%, transparent);
+}
+
+[data-state='paused'] .dot {
+	background: var(--paused);
+}
+
+.clock {
+	font-size: 34px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.02em;
+}
+
+.me[data-state='idle'] .clock {
+	color: var(--muted);
+}
+
+.plan {
+	color: var(--muted);
+	font-size: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.actions {
+	display: flex;
+	gap: 6px;
+}
+
+button {
+	flex: 1;
+	padding: 8px 10px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--card);
+	color: var(--fg);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+button.primary {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: var(--accent-fg);
+}
+
+button.link {
+	border: 0;
+	background: none;
+	color: var(--muted);
+	font-weight: 400;
+	text-decoration: underline;
+}
+
+button:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.confirm {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	text-align: center;
+}
+
+.message,
+.empty {
+	color: var(--muted);
+	font-size: 12px;
+	text-align: center;
+}
+
+.team {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 0;
+	padding: 10px 0 0;
+	border-top: 1px solid var(--line);
+	list-style: none;
+}
+
+.team li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	border-radius: 8px;
+}
+
+.team .alone {
+	justify-content: center;
+	color: var(--muted);
+	font-size: 12px;
+}
+
+.avatar {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.team li[data-state='paused'] .avatar {
+	opacity: 0.5;
+}
+
+.name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.time {
+	flex: none;
+	color: var(--muted);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+}
+
+/* 방금 집중을 시작한 팀원 */
+.team li.new {
+	animation: sparkle 1.2s ease-out 3;
+}
+
+@keyframes sparkle {
+	0% {
+		background: color-mix(in srgb, var(--focusing) 30%, transparent);
+	}
+	100% {
+		background: transparent;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.team li.new {
+		animation: none;
+		background: color-mix(in srgb, var(--focusing) 15%, transparent);
+	}
+}
