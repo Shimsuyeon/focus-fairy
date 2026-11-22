@@ -4,6 +4,7 @@
  *    — 아이폰 사파리는 홈 화면 앱과 저장 공간이 따로라 바로 연결하지 않고, 홈 화면 앱에서 입력할 코드를 보여준다.
  * 2. 홈 화면 추가 안내
  * 3. 익스텐션 팝업 코드(panel.js, stats.js)를 그대로 불러온다 (chrome.* 는 shim.js)
+ * 4. 데스크톱 Chrome · Edge 면 📌 띄우기 (pip.js)
  */
 
 import { connectWithCode } from './api.js';
@@ -152,3 +153,4 @@ else if (code) await connect(code);
 
 await import('./panel.js');
 await import('./stats.js');
+(await import('./pip.js')).setupPip();
